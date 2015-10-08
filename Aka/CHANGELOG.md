@@ -21,3 +21,5 @@
 ### Version 2.1:
   * Fixed FileNotFoundError bug.
   * You can now manually map nick to host
+  * Code refactoring
+  * fixed a bug with sharedchans and intersect

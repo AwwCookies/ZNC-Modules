@@ -97,94 +97,104 @@ class Aka(znc.Module):
         self.process(user.GetHost(), user.GetNick())
         self.process_chan(user.GetHost(), user.GetNick(), channel.GetName())
 
+    def cmd_trace_sharedchans(self, nicks):
+        chan_list = []
+        for nick in nicks:
+            chans = []
+            for chan in self.channels:
+                for user in self.channels[chan]:
+                    if nick == user[0]:
+                        chans.append(chan)
+            chan_list.append(chans)
+        common = itertools.chain(*chan_list)) if all(
+            item in lst for lst in chan_list)]
+        if common:
+            self.PutModule("Common channels %s" % (' '.join(common)))
+        else:
+            self.PutModule("No comman channels.")
+
+    def cmd_trace_intersect(self, chans):
+        for chan in chans:
+            if chan not in self.channels:
+                self.PutModule("Invalid channel %s" % chan)
+        nick_list = []
+        for chan in chans:
+            nicks = []
+            for user in self.channels[chan]:
+                nicks.append(user[0])
+            nick_list.append(nicks)
+        common = itertools.chain(*nick_list)) if all(
+            item in lst for lst in nick_list)]
+        if common:
+            self.PutModule("%s share those channels" % ', '.join(common))
+        else:
+            self.PutModule("No shared nicks" % ' '.join(common))
+
+    def cmd_trace_hostchans(self, host):
+        found = []
+        for chan in self.channels:
+            for user in self.channels[chan]:
+                if host == user[1]:
+                    found.append(chan)
+        if found:
+            self.PutModule("%s was found in %s" % (host, ' '.join(found)))
+        else:
+            self.PutModule("%s was not found in any channels." % (host))
+
+    def cmd_trace_nick(self, nick):
+        hosts = 0
+        for host in self.hosts:
+            if nick in self.hosts[host]:
+                hosts += 1
+                self.PutModule("%s was also know as: %s (%s)" %(
+                    nick, ', '.join(sorted(self.hosts[host])), host))
+        if not hosts:
+            self.PutModule("No nicks found for %s" % nick)
+
+    def cmd_trace_host(self, host):
+        if host in self.hosts:
+            self.PutModule("%s was also know as: %s" %(
+                host, ', '.join(sorted(self.hosts[host]))))
+        else:
+            self.PutModule("No nicks found for %s" % host)
+
+    def cmd_save(self):
+        self.save()
+        self.PutModule("Saved.")
+
+    def cmd_config(self, var_name, value):
+        self.change_config(var_name, value)
+
+    def cmd_add(self, nick, host):
+        self.process(host, nick)
+        self.PutModule("%s => %s" % (nick, host))
+
+    def cmd_help(self):
+        self.PutModule("Help comming soon =P")
+
     def OnModCommand(self, command):
+        # Valid Commands
         cmds = ["trace", "help", "config", "save", "add"]
         if command.split()[0] in cmds:
             if command.split()[0] == "trace":
                 if command.split()[1] == "sharedchans":
-                    nicks = command.split()[2:]
-                    chan_list = []
-                    for nick in nicks:
-                        chans = []
-                        for chan in self.channels:
-                            for user in self.channels[chan]:
-                                if nick == user[0]:
-                                    chans.append(chan)
-                        chan_list.append(chans)
-                    common = [item for item in set(itertools.chain(*chan_list))]
-                    if common:
-                        self.PutModule("Common channels %s" % (' '.join(common)))
-                    else:
-                        self.PutModule("No comman channels.")
+                    self.cmd_trace_sharedchans(list(command.split()[2:]))
                 elif command.split()[1] == "intersect":
-                    chans = command.split()[2:]
-                    for chan in chans:
-                        if chan not in self.channels:
-                            self.PutModule("Invalid channel %s" % chan)
-                    nick_list = []
-                    for chan in chans:
-                        nicks = []
-                        for user in self.channels[chan]:
-                            nicks.append(user[0])
-                        nick_list.append(nicks)
-                    common = [item for item in set(itertools.chain(*nick_list))]
-                    if common:
-                        self.PutModule("%s share those channels" % ', '.join(common))
-                    else:
-                        self.PutModule("No shared nicks" % ' '.join(common))
+                    self.cmd_trace_intersect(command.split()[2:])
                 elif command.split()[1] == "hostchans":
-                    found = []
-                    host = command.split()[2]
-                    for chan in self.channels:
-                        for user in self.channels[chan]:
-                            if host == user[1]:
-                                found.append(chan)
-                    if found:
-                        self.PutModule("%s was found in %s" % (host, ' '.join(found)))
-                    else:
-                        self.PutModule("%s was not found in any channels." % (host))
+                    self.cmd_trace_hostchans(command.split()[2])
                 elif command.split()[1] == "nick": # trace nick $nick
-                    nick = command.split()[2]
-                    hosts = 0
-                    for host in self.hosts:
-                        if nick in self.hosts[host]:
-                            hosts += 1
-                            self.PutModule("%s was also know as: %s (%s)" %(
-                                nick, ', '.join(sorted(self.hosts[host])), host))
-                    if not hosts:
-                        self.PutModule("No nicks found for %s" % nick)
+                    self.cmd_trace_nick(command.split()[2])
                 elif command.split()[1] == "host": # trace host $host
-                    host = command.split()[2]
-                    if host in self.hosts:
-                        self.PutModule("%s was also know as: %s" %(
-                            host, ', '.join(sorted(self.hosts[host]))))
-                    else:
-                        self.PutModule("No nicks found for %s" % host)
+                    self.cmd_trace_nick(command.split()[2])
             elif command.split()[0] == "save":
-                self.save()
-                self.PutModule("Saved.")
+                self.cmd_save()
             elif command.split()[0] == "config":
-                if len(command.split()) == 3:
-                    var_name = command.split()[1]
-                    value = command.split()[2]
-                    self.change_config(var_name, value)
-                else:
-                    self.PutModule("Syntax: config $var_name $value")
+                self.cmd_config(command.split()[1], command.split()[2])
             elif command.split()[0] == "add":
-                if len(command.split()) == 3:
-                    nick = command.split()[1]
-                    host = command.split()[2]
-                    self.process(host, nick)
-                else:
-                    self.PutModule("Syntax: add $nick $host")
-
+                self.cmd_add(command.split()[1], command.split()[2])
             elif command.split()[0] == "help":
-                self.PutModule("trace nick $nick")
-                self.PutModule("Example: trace nick Aww")
-                self.PutModule("trace host $host")
-                self.PutModule("Example: trace host 127.0.0.1")
-                self.PutModule("Example: trace host example.com")
-                self.PutModule("Save")
+                self.cmd_help()
         else:
             self.PutModule("%s is not a valid command." % command)
 
