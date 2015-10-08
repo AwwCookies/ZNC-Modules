@@ -106,8 +106,9 @@ class Aka(znc.Module):
                     if nick == user[0]:
                         chans.append(chan)
             chan_list.append(chans)
-        common = itertools.chain(*chan_list) if all(
-            item in lst for lst in chan_list)]
+            common = [item for item in set(
+                itertools.chain(*chan_list)) if all(
+                    item in lst for lst in chan_list)]
         if common:
             self.PutModule("Common channels %s" % (' '.join(common)))
         else:
@@ -123,8 +124,9 @@ class Aka(znc.Module):
             for user in self.channels[chan]:
                 nicks.append(user[0])
             nick_list.append(nicks)
-        common = itertools.chain(*nick_list) if all(
-            item in lst for lst in nick_list)]
+        common = [item for item in set(
+                        itertools.chain(*nick_list)) if all(
+                            item in lst for lst in nick_list)]
         if common:
             self.PutModule("%s share those channels" % ', '.join(common))
         else:
