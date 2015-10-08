@@ -46,7 +46,7 @@ class Aka(znc.Module):
             self.channels = json.loads(open(self.MODFOLDER + self.NETWORK + "_chans.json", 'r').read())
 
         self.timer = self.CreateTimer(SaveTimer)
-        self.timer.Start(CONFIG.get(SAVE_EVERY, 60 * 5))
+        self.timer.Start(CONFIG.get("SAVE_EVERY", 60 * 5))
         return True
 
     def process(self, host, nick):
