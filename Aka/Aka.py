@@ -1,8 +1,8 @@
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#   Author: AwwCookies (Aww)                                                  #
-#   Last Update: Oct 8th 2015                                                 #
-#   Version: 2.1                                                          # # #
-#   Desc: A ZNC Module to track nicks                                     # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#   Author: AwwCookies (Aww)                                              #
+#   Last Update: Oct 8th 2015                                             #
+#   Version: 2.1.1                                                        #
+#   Desc: A ZNC Module to track nicks                                     #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import znc
