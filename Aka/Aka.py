@@ -148,14 +148,14 @@ class Aka(znc.Module):
         for host in self.hosts:
             if nick in self.hosts[host]:
                 hosts += 1
-                self.PutModule("%s was also know as: %s (%s)" %(
+                self.PutModule("%s was also known as: %s (%s)" %(
                     nick, ', '.join(sorted(self.hosts[host])), host))
         if not hosts:
             self.PutModule("No nicks found for %s" % nick)
 
     def cmd_trace_host(self, host):
         if host in self.hosts:
-            self.PutModule("%s was also know as: %s" %(
+            self.PutModule("%s was also known as: %s" %(
                 host, ', '.join(sorted(self.hosts[host]))))
         else:
             self.PutModule("No nicks found for %s" % host)

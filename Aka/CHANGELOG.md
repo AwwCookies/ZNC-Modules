@@ -23,3 +23,6 @@
   * You can now manually map nick to host
   * Code refactoring
   * fixed a bug with sharedchans and intersect
+
+### Version 2.1.1:
+  * Spelling and grammar fixes
