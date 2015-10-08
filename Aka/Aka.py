@@ -11,7 +11,7 @@ import json
 import socket
 import itertools
 
-#CHANGE THIS TO THE USERNAME ZNC RUNS AS
+# CHANGE THIS TO THE USERNAME ZNC RUNS AS
 USERNAME = "znc"
 CONFIG = {
     "SAVE_EVERY": 60 * 5 # 5 mins
@@ -106,7 +106,7 @@ class Aka(znc.Module):
                     if nick == user[0]:
                         chans.append(chan)
             chan_list.append(chans)
-        common = itertools.chain(*chan_list)) if all(
+        common = itertools.chain(*chan_list) if all(
             item in lst for lst in chan_list)]
         if common:
             self.PutModule("Common channels %s" % (' '.join(common)))
@@ -123,7 +123,7 @@ class Aka(znc.Module):
             for user in self.channels[chan]:
                 nicks.append(user[0])
             nick_list.append(nicks)
-        common = itertools.chain(*nick_list)) if all(
+        common = itertools.chain(*nick_list) if all(
             item in lst for lst in nick_list)]
         if common:
             self.PutModule("%s share those channels" % ', '.join(common))
@@ -213,7 +213,7 @@ class Aka(znc.Module):
                     self.timer.Start(CONFIG["SAVE_EVERY"])
                     self.PutModule("%s => %s" % (var_name, str(value)))
                 else:
-                    self.PutModule("Please use a int value larger than 0")
+                    self.PutModule("Please use an int value larger than 0")
             with open(self.MODFOLDER + "config.json", 'w') as f:
                 f.write(json.dumps(CONFIG, sort_keys=True, indent=4))
             return True
