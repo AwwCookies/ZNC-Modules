@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Author: AwwCookies (Aww)                                              #
 #   Last Update: Oct 8th 2015                                             #
-#   Version: 2.1.1                                                        #
+#   Version: 2.2.0                                                          #
 #   Desc: A ZNC Module to track nicks                                     #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -110,7 +110,7 @@ class Aka(znc.Module):
                 itertools.chain(*chan_list)) if all(
                     item in lst for lst in chan_list)]
         if common:
-            self.PutModule("Common channels %s" % (' '.join(common)))
+            self.PutModule("Common channels %s" % (' '.join(sorted(set(common),key=str.lower))))
         else:
             self.PutModule("No common channels.")
 
@@ -128,7 +128,7 @@ class Aka(znc.Module):
                         itertools.chain(*nick_list)) if all(
                             item in lst for lst in nick_list)]
         if common:
-            self.PutModule("%s share those channels" % ', '.join(common))
+            self.PutModule("%s share those channels" % ', '.join(sorted(set(common),key=str.lower)))
         else:
             self.PutModule("No shared nicks" % ' '.join(common))
 
@@ -139,7 +139,7 @@ class Aka(znc.Module):
                 if host == user[1]:
                     found.append(chan)
         if found:
-            self.PutModule("%s was found in %s" % (host, ' '.join(found)))
+            self.PutModule("%s was found in %s" % (host, ' '.join(sorted(set(found),key=str.lower))))
         else:
             self.PutModule("%s was not found in any channels." % (host))
 
@@ -149,7 +149,7 @@ class Aka(znc.Module):
             if nick in self.hosts[host]:
                 hosts += 1
                 self.PutModule("%s was also known as: %s (%s)" %(
-                    nick, ', '.join(sorted(self.hosts[host])), host))
+                    nick, ', '.join(sorted(set(self.hosts[host]), key=str.lower)), host))
         if not hosts:
             self.PutModule("No nicks found for %s" % nick)
 
