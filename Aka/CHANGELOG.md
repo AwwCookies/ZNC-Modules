@@ -54,3 +54,6 @@
 
 ### Version 1.2.4
   * Fixed initialization error
+
+### Version 1.2.5
+  * Spelling fixes

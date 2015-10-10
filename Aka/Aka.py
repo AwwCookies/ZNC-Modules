@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Author: AwwCookies (Aww)                                          #
 #   Last Update: Oct 10th 2015                                        #
-#   Version: 1.2.4                                                # # #
+#   Version: 1.2.5                                                # # #
 #   Desc: A ZNC Module to track nicks                             # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -183,14 +183,14 @@ class Aka(znc.Module):
         for host in sorted(self.hosts):
             if nick.lower() in [n.lower() for n in self.hosts[host]]:
                 hosts += 1
-                self.PutModule("%s was also know as: %s (%s)" %(
+                self.PutModule("%s was also known as: %s (%s)" %(
                     nick, ', '.join(sorted(set(self.hosts[host]), key=str.lower)), host))
         if not hosts:
             self.PutModule("No nicks found for %s" % nick)
 
     def cmd_trace_host(self, host):
         if host in self.hosts:
-            self.PutModule("%s was also know as: %s" %(
+            self.PutModule("%s was also known as: %s" %(
                 host, ', '.join(sorted(set(self.hosts[host]), key=str.lower))))
         else:
             self.PutModule("No nicks found for %s" % host)
