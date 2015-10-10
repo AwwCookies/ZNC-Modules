@@ -172,7 +172,7 @@ class Aka(znc.Module):
 
     def cmd_trace_nick(self, nick):
         hosts = 0
-        for host in self.hosts:
+        for host in sorted(self.hosts):
             if nick.lower() in [n.lower() for n in self.hosts[host]]:
                 hosts += 1
                 self.PutModule("%s was also know as: %s (%s)" %(
