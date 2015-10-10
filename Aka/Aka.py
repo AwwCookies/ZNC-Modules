@@ -1,9 +1,9 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Author: AwwCookies (Aww)                                              #
 #   Last Update: Oct 10th 2015                                            #
-#   Version: 3.1.0                                                          #
-#   Desc: A ZNC Module to track nicks                                     #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#   Version: 3.1.0                                                    # # #
+#   Desc: A ZNC Module to track nicks                                 # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import znc
 import os
@@ -257,7 +257,7 @@ class Aka(znc.Module):
                 elif command.split()[1] == "nick": # trace nick $nick
                     self.cmd_trace_nick(command.split()[2])
                 elif command.split()[1] == "host": # trace host $host
-                    self.cmd_trace_nick(command.split()[2])
+                    self.cmd_trace_host(command.split()[2])
             elif command.split()[0] == "save":
                 self.cmd_save()
             elif command.split()[0] == "config":
