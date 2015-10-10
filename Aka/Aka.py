@@ -1,8 +1,8 @@
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#   Author: AwwCookies (Aww)                                                  #
-#   Last Update: Oct 8th 2015                                                 #
-#   Version: 2.2                                                          # # #
-#   Desc: A ZNC Module to track nicks                                     # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#   Author: AwwCookies (Aww)                                              #
+#   Last Update: Oct 10th 2015                                            #
+#   Version: 3.0.0                                                          #
+#   Desc: A ZNC Module to track nicks                                     #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import znc
@@ -132,7 +132,7 @@ class Aka(znc.Module):
                 itertools.chain(*chan_list)) if all(
                     item in lst for lst in chan_list)]
         if common:
-            self.PutModule("Common channels %s" % (' '.join(common)))
+            self.PutModule("Common channels %s" % (' '.join(sorted(set(common), key=str.lower))))
         else:
             self.PutModule("No comman channels.")
 
@@ -150,9 +150,9 @@ class Aka(znc.Module):
                         itertools.chain(*nick_list)) if all(
                             item in lst for lst in nick_list)]
         if common:
-            self.PutModule("%s share those channels" % ', '.join(common))
+            self.PutModule("%s share those channels" % ', '.join(sorted(set(common), key=str.lower)))
         else:
-            self.PutModule("No shared nicks" % ' '.join(common))
+            self.PutModule("No shared nicks" % ' '.join(sort(set(common), key=str.lower)))
 
     def cmd_trace_hostchans(self, host):
         found = []
@@ -161,7 +161,7 @@ class Aka(znc.Module):
                 if host == user[1]:
                     found.append(chan)
         if found:
-            self.PutModule("%s was found in %s" % (host, ' '.join(found)))
+            self.PutModule("%s was found in %s" % (host, ' '.join(sorted(set(found), key=str.lower))))
         else:
             self.PutModule("%s was not found in any channels." % (host))
 
@@ -171,7 +171,7 @@ class Aka(znc.Module):
             if nick in self.hosts[host]:
                 hosts += 1
                 self.PutModule("%s was also know as: %s (%s)" %(
-                    nick, ', '.join(sorted(self.hosts[host])), host))
+                    nick, ', '.join(sorted(set(self.hosts[host]), key=str.lower)), host))
         if not hosts:
             self.PutModule("No nicks found for %s" % nick)
 
@@ -179,7 +179,7 @@ class Aka(znc.Module):
     def cmd_trace_host(self, host):
         if host in self.hosts:
             self.PutModule("%s was also know as: %s" %(
-                host, ', '.join(sorted(self.hosts[host]))))
+                host, ', '.join(sorted(set(self.hosts[host]), key=str.lower))))
         else:
             self.PutModule("No nicks found for %s" % host)
 
@@ -194,7 +194,7 @@ class Aka(znc.Module):
         self.process(host, nick)
         self.PutModule("%s => %s" % (nick, host))
 
-    def cmd_marge_hosts(self, URL):
+    def cmd_merge_hosts(self, URL):
         """
         Consolidates two *_hosts.json files
         """
@@ -220,7 +220,7 @@ class Aka(znc.Module):
 
     def OnModCommand(self, command):
         # Valid Commands
-        cmds = ["trace", "help", "config", "save", "add", "marge"]
+        cmds = ["trace", "help", "config", "save", "add", "merge"]
         if command.split()[0] in cmds:
             if command.split()[0] == "trace":
                 if command.split()[1] == "sharedchans":
@@ -241,9 +241,9 @@ class Aka(znc.Module):
                 self.cmd_add(command.split()[1], command.split()[2])
             elif command.split()[0] == "help":
                 self.cmd_help()
-            elif command.split()[0] == "marge":
+            elif command.split()[0] == "merge":
                 if command.split()[1] == "hosts":
-                    self.cmd_marge_hosts(command.split()[2])
+                    self.cmd_merge_hosts(command.split()[2])
         else:
             self.PutModule("%s is not a valid command." % command)
 
