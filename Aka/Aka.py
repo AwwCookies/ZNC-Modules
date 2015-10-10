@@ -215,8 +215,8 @@ class Aka(znc.Module):
                 self.hosts[host] = idata[host]
                 hosts += 1
                 nicks += len(idata[host])
-        self.PutModule("%i nicks imported" % "{:,}".format(nicks))
-        self.PutModule("%i hosts imported" % "{:,}".format(hosts))
+        self.PutModule("%s nicks imported" % "{:,}".format(nicks))
+        self.PutModule("%s hosts imported" % "{:,}".format(hosts))
         self.save()
 
     def cmd_merge_chans(self, URL):
@@ -236,8 +236,8 @@ class Aka(znc.Module):
                 self.channels[channel] = idata[channel]
                 chans += 1
                 users += len(idata[channel])
-        self.PutModule("%i users imported" % "{:,}".format(users))
-        self.PutModule("%i channels imported" % "{:,}".format(chans))
+        self.PutModule("%s users imported" % "{:,}".format(users))
+        self.PutModule("%s channels imported" % "{:,}".format(chans))
         self.save()
 
     def cmd_help(self):
