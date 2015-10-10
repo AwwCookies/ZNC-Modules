@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Author: AwwCookies (Aww)                                              #
 #   Last Update: Oct 10th 2015                                            #
-#   Version: 3.1.0                                                    # # #
+#   Version: 1.2.0                                                    # # #
 #   Desc: A ZNC Module to track nicks                                 # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -198,6 +198,11 @@ class Aka(znc.Module):
         else:
             self.PutModule("No nicks found for %s" % host)
 
+    def cmd_version(self):
+        self.PutModule(open(__file__, 'r').readlines()[3].replace("#", "").strip())
+        # with open("Aka.py", "r") as f:
+        #     self.PutModule("Version: %s" % f.readlines()[3].replace("#", "").strip())
+
     def cmd_save(self):
         self.save()
         self.PutModule("Saved.")
@@ -256,7 +261,7 @@ class Aka(znc.Module):
 
     def OnModCommand(self, command):
         # Valid Commands
-        cmds = ["trace", "help", "config", "save", "add", "merge", "muilt"]
+        cmds = ["trace", "help", "config", "save", "add", "merge", "version"]
         if command.split()[0] in cmds:
             if command.split()[0] == "trace":
                 if command.split()[1] == "sharedchans":
@@ -284,6 +289,8 @@ class Aka(znc.Module):
                     self.cmd_merge_hosts(command.split()[2])
                 elif command.split()[1] == "chans":
                     self.cmd_merge_chans(command.split()[2])
+            elif command.split()[0] == "version":
+                self.cmd_version()
         else:
             self.PutModule("%s is not a valid command." % command)
 

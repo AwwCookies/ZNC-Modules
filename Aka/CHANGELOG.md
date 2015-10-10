@@ -1,6 +1,6 @@
 # Changelog
 
-### Version 1.1
+### Version 0.0.1a:
   * OnQuit() and OnPart() functions added
   * Trace outputs are now sorted.
   * Implemented a save timer
@@ -8,34 +8,36 @@
   * Now adds nicks when a `WHOIS` is done on a user
   * Now adds nicks when a `WHOWAS` is done on a user
 
-### Version 1.2:
+### Version 0.0.2a:
   * You can now manually save with `save`
   * You can now change the config within ZNC
 
-### Version 2.0:
+### Version 0.2.0b:
   * Config file is now pretty.
   * New command `hostchans` added. prints all the channels a host is in
   * New command `intersect` added.  prints all nicks that share channels
   * New command `sharedchans` added.  prints all channels shared by those nicks
 
-### Version 2.1:
+### Version 0.2.1b:
   * Fixed FileNotFoundError bug.
   * You can now manually map nick to host
   * Code refactoring
-  * Fixed a bug with `sharedchans` and `intersect`
+  * fixed a bug with `sharedchans` and `intersect`
 
-### Version 2.1.1:
+### Version 0.2.2b:
   * Spelling and grammar fixes
 
-### Version 3.0.0
+### Version 1.0.0
   * Code refactoring
   * Added checks to ensure all files and folders are created before loading
-  * New command `merge hosts` Combine someone else's \*\_hosts.json with yours!
+  * New command `merge hosts` combine someone else's *_hosts.json with yours!
 
-### Version 3.1.0
-  * New command `merge chans` Combine someone else's \*\_chans.json with yours!
+### Version 1.1.0
+  * New command `merge chans` combine someone else's *_chans.json with yours!
   * The script will now make you a config file if you don't already have one
   * Nick searches are now case-insensitive
 
-### Version 3.2.0
-  * New command `nickchans` Prints all channels a host is in
+### Version 1.2.0
+  * Fixed typos
+  * New command `nickchans` same thing as `hostchans` but with nicks
+  * New command `version` tells the you version of the script
