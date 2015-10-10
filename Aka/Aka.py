@@ -1,9 +1,9 @@
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#   Author: AwwCookies (Aww)                                              #
-#   Last Update: Oct 10th 2015                                            #
-#   Version: 1.2.2                                                    # # #
-#   Desc: A ZNC Module to track nicks                                 # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#   Author: AwwCookies (Aww)                                          #
+#   Last Update: Oct 10th 2015                                        #
+#   Version: 1.2.3                                                    #
+#   Desc: A ZNC Module to track nicks                                 #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import znc
 import os
@@ -14,8 +14,6 @@ import glob
 
 import requests
 
-# CHANGE THIS TO THE USERNAME ZNC RUNS AS
-USERNAME = "znc"
 CONFIG = {
     "SAVE_EVERY": 60 * 5, # 5 mins
     "TEMP_FILES": False,
@@ -27,11 +25,11 @@ class SaveTimer(znc.Timer):
         self.GetModule().save()
 
 class Aka(znc.Module):
-    description = "aka tracking script"
+    description = "A ZNC module to track nicks"
     def OnLoad(self, args, message):
         self.USER = self.GetUser().GetUserName()
         self.NETWORK = self.GetNetwork().GetName()
-        self.MODFOLDER = "/home/" + USERNAME + "/.znc/users/" + self.USER + "/moddata/Aka/"
+        self.MODFOLDER = znc.CUser(self.USER).GetUserPath() + "/moddata/Aka/"
         if os.path.exists(self.MODFOLDER + "config.json"):
             global CONFIG
             CONFIG = json.loads(open(self.MODFOLDER + "config.json").read())
