@@ -255,7 +255,7 @@ class Aka(znc.Module):
         self.save()
 
     def cmd_help(self):
-        self.PutModule("Help comming soon =P")
+        self.PutModule("https://github.com/AwwCookies/ZNC-Modules/blob/master/Aka/README.md")
 
     def cmd_stats(self):
         nicks = 0

@@ -8,11 +8,7 @@
 
 `hostchans <host>` Get all channels a host has been seen in
 
-`config <variable> <value` Set configuration variables
-
-`help` Print help from the module
-
-#### Other Commands
+#### Modify Data Commands
 
 `add <nick> <host>` Manually add a nick/host entry to the database
 
@@ -21,3 +17,11 @@
 `merge hosts <url>` Merges the **hosts** files from two users
 
 `merge chans <url>` Merges the **chans** files from two users
+
+#### Other Commands
+
+`config <variable> <value` Set configuration variables
+
+`help` Print help from the module
+
+`stats` Print nick and host stats for the network

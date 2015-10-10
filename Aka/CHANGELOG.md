@@ -30,10 +30,10 @@
 ### Version 1.0.0:
   * Code refactoring
   * Added checks to ensure all files and folders are created before loading
-  * New command `merge hosts` combine someone else's *_hosts.json with yours!
+  * New command `merge hosts` combine someone else's \*\_hosts.json with yours!
 
 ### Version 1.1.0:
-  * New command `merge chans` combine someone else's *_chans.json with yours!
+  * New command `merge chans` combine someone else's \*\_chans.json with yours!
   * The script will now make you a config file if you don't already have one
   * Nick searches are now case-insensitive
 
@@ -51,3 +51,6 @@
 ### Version 1.2.3:
   * You no longer need to specify the user in the file
   * New command `stats` tell you how many users/hosts you have added to your hosts.json
+
+### Version 1.2.4
+  * Fixed initialization error
