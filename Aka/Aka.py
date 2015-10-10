@@ -2,8 +2,8 @@
 #   Author: AwwCookies (Aww)                                          #
 #   Last Update: Oct 10th 2015                                        #
 #   Version: 1.2.3                                                # # #
-#   Desc: A ZNC Module to track nicks                             # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#   Desc: A ZNC Module to track nicks                             # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import znc
 import os
@@ -258,7 +258,7 @@ class Aka(znc.Module):
         self.PutModule("Help comming soon =P")
 
     def cmd_stats(self):
-        nicks =
+        nicks = 0
         for host in self.hosts:
             nicks += len(self.hosts[host])
         self.PutModule("Nicks: %s" % "{:,}".format(nicks))
