@@ -10,7 +10,6 @@ import os
 import json
 import socket
 import itertools
-import glob
 
 import requests
 
@@ -259,7 +258,7 @@ class Aka(znc.Module):
         self.PutModule("Help comming soon =P")
 
     def cmd_stats(self):
-        nicks = 0
+        nicks =
         for host in self.hosts:
             nicks += len(self.hosts[host])
         self.PutModule("Nicks: %s" % "{:,}".format(nicks))
