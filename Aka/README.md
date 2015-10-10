@@ -19,4 +19,5 @@
 `save` Manually save the latest tracks to disk
 
 `merge hosts <url>` Merges the **hosts** files from two users
+
 `merge chans <url>` Merges the **chans** files from two users
