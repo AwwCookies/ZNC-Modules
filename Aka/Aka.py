@@ -1,9 +1,9 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Author: AwwCookies (Aww)                                          #
 #   Last Update: Oct 10th 2015                                        #
-#   Version: 1.2.3                                                    #
-#   Desc: A ZNC Module to track nicks                                 #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#   Version: 1.2.3                                                # # #
+#   Desc: A ZNC Module to track nicks                             # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import znc
 import os
@@ -258,9 +258,16 @@ class Aka(znc.Module):
     def cmd_help(self):
         self.PutModule("Help comming soon =P")
 
+    def cmd_stats(self):
+        nicks = 0
+        for host in self.hosts:
+            nicks += len(self.hosts[host])
+        self.PutModule("Nicks: %s" % "{:,}".format(nicks))
+        self.PutModule("Hosts: %s" % "{:,}".format(len(self.hosts)))
+
     def OnModCommand(self, command):
         # Valid Commands
-        cmds = ["trace", "help", "config", "save", "add", "merge", "version"]
+        cmds = ["trace", "help", "config", "save", "add", "merge", "version", "stats"]
         if command.split()[0] in cmds:
             if command.split()[0] == "trace":
                 cmds = ["sharedchans", "intersect", "hostchans", "nickchans", "nick", "host"]
@@ -298,6 +305,8 @@ class Aka(znc.Module):
                     self.PutModule("%s is not a valid command." % command)
             elif command.split()[0] == "version":
                 self.cmd_version()
+            elif command.split()[0] == "stats":
+                self.cmd_stats()
         else:
             self.PutModule("%s is not a valid command." % command)
 
