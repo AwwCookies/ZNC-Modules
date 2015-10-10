@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Author: AwwCookies (Aww)                                              #
 #   Last Update: Oct 10th 2015                                            #
-#   Version: 1.2.0                                                    # # #
+#   Version: 1.2.1                                                    # # #
 #   Desc: A ZNC Module to track nicks                                 # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -199,9 +199,10 @@ class Aka(znc.Module):
             self.PutModule("No nicks found for %s" % host)
 
     def cmd_version(self):
+        """
+        Pull the version number from line 4 of this script
+        """
         self.PutModule(open(__file__, 'r').readlines()[3].replace("#", "").strip())
-        # with open("Aka.py", "r") as f:
-        #     self.PutModule("Version: %s" % f.readlines()[3].replace("#", "").strip())
 
     def cmd_save(self):
         self.save()
@@ -264,18 +265,22 @@ class Aka(znc.Module):
         cmds = ["trace", "help", "config", "save", "add", "merge", "version"]
         if command.split()[0] in cmds:
             if command.split()[0] == "trace":
-                if command.split()[1] == "sharedchans":
-                    self.cmd_trace_sharedchans(list(command.split()[2:]))
-                elif command.split()[1] == "intersect":
-                    self.cmd_trace_intersect(command.split()[2:])
-                elif command.split()[1] == "hostchans":
-                    self.cmd_trace_hostchans(command.split()[2])
-                elif command.split()[1] == "nickchans":
-                    self.cmd_trace_nickchans(command.split()[2])
-                elif command.split()[1] == "nick": # trace nick $nick
-                    self.cmd_trace_nick(command.split()[2])
-                elif command.split()[1] == "host": # trace host $host
-                    self.cmd_trace_host(command.split()[2])
+                cmds = ["sharedchans", "intersect", "hostchans", "nickchans", "nick", "host"]
+                if command.split()[1] in cmds:
+                    if command.split()[1] == "sharedchans":
+                        self.cmd_trace_sharedchans(list(command.split()[2:]))
+                    elif command.split()[1] == "intersect":
+                        self.cmd_trace_intersect(command.split()[2:])
+                    elif command.split()[1] == "hostchans":
+                        self.cmd_trace_hostchans(command.split()[2])
+                    elif command.split()[1] == "nickchans":
+                        self.cmd_trace_nickchans(command.split()[2])
+                    elif command.split()[1] == "nick": # trace nick $nick
+                        self.cmd_trace_nick(command.split()[2])
+                    elif command.split()[1] == "host": # trace host $host
+                        self.cmd_trace_host(command.split()[2])
+                else:
+                    self.PutModule("%s is not a valid command." % command)
             elif command.split()[0] == "save":
                 self.cmd_save()
             elif command.split()[0] == "config":
@@ -285,10 +290,14 @@ class Aka(znc.Module):
             elif command.split()[0] == "help":
                 self.cmd_help()
             elif command.split()[0] == "merge":
-                if command.split()[1] == "hosts":
-                    self.cmd_merge_hosts(command.split()[2])
-                elif command.split()[1] == "chans":
-                    self.cmd_merge_chans(command.split()[2])
+                cmds = ["hosts", "chans"]
+                if command.split()[1] in cmds:
+                    if command.split()[1] == "hosts":
+                        self.cmd_merge_hosts(command.split()[2])
+                    elif command.split()[1] == "chans":
+                        self.cmd_merge_chans(command.split()[2])
+                else:
+                    self.PutModule("%s is not a valid command." % command)
             elif command.split()[0] == "version":
                 self.cmd_version()
         else:
