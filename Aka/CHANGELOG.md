@@ -27,20 +27,23 @@
 ### Version 0.2.2:
   * Spelling and grammar fixes
 
-### Version 1.0.0
+### Version 1.0.0:
   * Code refactoring
   * Added checks to ensure all files and folders are created before loading
   * New command `merge hosts` combine someone else's *_hosts.json with yours!
 
-### Version 1.1.0
+### Version 1.1.0:
   * New command `merge chans` combine someone else's *_chans.json with yours!
   * The script will now make you a config file if you don't already have one
   * Nick searches are now case-insensitive
 
-### Version 1.2.0
+### Version 1.2.0:
   * Fixed typos
   * New command `nickchans` same thing as `hostchans` but with nicks
   * New command `version` tells the you version of the script
 
-### Version 1.2.1
+### Version 1.2.1:
   * Command validation for sub-commands
+
+### Version 1.2.2:
+  * Config is saved when you change a setting via ZNC

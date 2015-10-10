@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Author: AwwCookies (Aww)                                              #
 #   Last Update: Oct 10th 2015                                            #
-#   Version: 1.2.1                                                    # # #
+#   Version: 1.2.2                                                    # # #
 #   Desc: A ZNC Module to track nicks                                 # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -337,29 +337,26 @@ class Aka(znc.Module):
                     self.PutModule("%s => %s" % (var_name, str(value)))
                 else:
                     self.PutModule("Please use an int value larger than 0")
-            with open(self.MODFOLDER + "config.json", 'w') as f:
-                f.write(json.dumps(CONFIG, sort_keys=True, indent=4))
-            return True
-        elif var_name == "DEBUG_MODE":
-            if int(value) in [0, 1]:
-                if int(value) == 0:
-                    CONFIG["DEBUG_MODE"] = False
-                    self.PutModule("Debug mode: OFF")
-                elif int(value) == 1:
-                    CONFIG["DEBUG_MODE"] = True
-                    self.PutModule("Debug mode: ON")
+            elif var_name == "DEBUG_MODE":
+                if int(value) in [0, 1]:
+                    if int(value) == 0:
+                        CONFIG["DEBUG_MODE"] = False
+                        self.PutModule("Debug mode: OFF")
+                    elif int(value) == 1:
+                        CONFIG["DEBUG_MODE"] = True
+                        self.PutModule("Debug mode: ON")
+                else:
+                    self.PutModule("valid values: 0, 1")
+            elif var_name == "TEMP_FILES":
+                if int(value) in [0, 1]:
+                    if int(value) == 0:
+                        CONFIG["TEMP_FILES"] = False
+                        self.PutModule("Temp Files: OFF")
+                    elif int(value) == 1:
+                        CONFIG["TEMP_FILES"] = True
+                        self.PutModule("Temp Files: ON")
+                else:
+                    self.PutModule("valid values: 0, 1")
             else:
-                self.PutModule("valid values: 0, 1")
-        elif var_name == "TEMP_FILES":
-            if int(value) in [0, 1]:
-                if int(value) == 0:
-                    CONFIG["TEMP_FILES"] = False
-                    self.PutModule("Temp Files: OFF")
-                elif int(value) == 1:
-                    CONFIG["TEMP_FILES"] = True
-                    self.PutModule("Temp Files: ON")
-            else:
-                self.PutModule("valid values: 0, 1")
-        else:
-            self.PutModule("%s is not a valid var." % var_name)
-            return False
+                self.PutModule("%s is not a valid var." % var_name)
+        self.save()
