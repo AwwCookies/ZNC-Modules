@@ -25,7 +25,7 @@ class SaveTimer(znc.Timer):
         self.GetModule().save()
 
 class Aka(znc.Module):
-    description = "A ZNC module to track nicks"
+    description = "Tracks nicks and hosts, allowing tracing and history viewing"
     def OnLoad(self, args, message):
         self.USER = self.GetUser().GetUserName()
         self.NETWORK = self.GetNetwork().GetName()
