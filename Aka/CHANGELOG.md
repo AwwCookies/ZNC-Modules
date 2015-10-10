@@ -22,7 +22,7 @@
   * Fixed FileNotFoundError bug.
   * You can now manually map nick to host
   * Code refactoring
-  * fixed a bug with `sharedchans` and `intersect`
+  * Fixed a bug with `sharedchans` and `intersect`
 
 ### Version 2.1.1:
   * Spelling and grammar fixes
@@ -30,9 +30,12 @@
 ### Version 3.0.0
   * Code refactoring
   * Added checks to ensure all files and folders are created before loading
-  * New command `merge hosts` combine someone else's *_hosts.json with yours!
+  * New command `merge hosts` Combine someone else's \*\_hosts.json with yours!
 
 ### Version 3.1.0
-  * New command `merge chans` combine someone else's *_chans.json with yours!
+  * New command `merge chans` Combine someone else's \*\_chans.json with yours!
   * The script will now make you a config file if you don't already have one
   * Nick searches are now case-insensitive
+
+### Version 3.2.0
+  * New command `nickchans` Prints all channels a host is in

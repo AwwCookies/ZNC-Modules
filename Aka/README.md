@@ -1,4 +1,4 @@
-#### `trace <commands>`
+#### `trace` Commands
 
 `nick <nick>`
 
@@ -12,7 +12,7 @@
 
 `help` Print help from the module
 
-#### Other commands
+#### Other Commands
 
 `add <nick> <host>` Manually add a nick/host entry to the database
 

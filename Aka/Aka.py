@@ -170,6 +170,17 @@ class Aka(znc.Module):
         else:
             self.PutModule("%s was not found in any channels." % (host))
 
+    def cmd_trace_nickchans(self, nick):
+        found = []
+        for chan in self.channels:
+            for user in self.channels[chan]:
+                if nick.lower() == user[0].lower():
+                    found.append(chan)
+        if found:
+            self.PutModule("%s was found in %s" % (nick, ' '.join(sorted(set(found), key=str.lower))))
+        else:
+            self.PutModule("%s was not found in any channels." % (host))
+
     def cmd_trace_nick(self, nick):
         hosts = 0
         for host in sorted(self.hosts):
@@ -254,6 +265,8 @@ class Aka(znc.Module):
                     self.cmd_trace_intersect(command.split()[2:])
                 elif command.split()[1] == "hostchans":
                     self.cmd_trace_hostchans(command.split()[2])
+                elif command.split()[1] == "nickchans":
+                    self.cmd_trace_nickchans(command.split()[2])
                 elif command.split()[1] == "nick": # trace nick $nick
                     self.cmd_trace_nick(command.split()[2])
                 elif command.split()[1] == "host": # trace host $host
