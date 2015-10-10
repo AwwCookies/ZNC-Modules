@@ -17,3 +17,5 @@
 `add <nick> <host>` Manually add a nick/host entry to the database
 
 `save` Manually save the latest tracks to disk
+
+`merge <url>` Merges the **hosts** files from two users
