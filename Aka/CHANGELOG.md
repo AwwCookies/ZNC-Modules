@@ -57,3 +57,6 @@
 
 ### Version 1.2.5
   * Spelling fixes
+
+### Version 1.2.6
+  * Added nick and channel inputs to intersect and sharedchans output
