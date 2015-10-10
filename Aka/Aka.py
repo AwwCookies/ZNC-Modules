@@ -10,6 +10,8 @@ import os
 import json
 import socket
 import itertools
+import glob
+
 import requests
 
 # CHANGE THIS TO THE USERNAME ZNC RUNS AS
@@ -178,7 +180,6 @@ class Aka(znc.Module):
         if not hosts:
             self.PutModule("No nicks found for %s" % nick)
 
-
     def cmd_trace_host(self, host):
         if host in self.hosts:
             self.PutModule("%s was also know as: %s" %(
@@ -244,7 +245,7 @@ class Aka(znc.Module):
 
     def OnModCommand(self, command):
         # Valid Commands
-        cmds = ["trace", "help", "config", "save", "add", "merge"]
+        cmds = ["trace", "help", "config", "save", "add", "merge", "muilt"]
         if command.split()[0] in cmds:
             if command.split()[0] == "trace":
                 if command.split()[1] == "sharedchans":
