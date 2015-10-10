@@ -1,8 +1,8 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Author: AwwCookies (Aww)                                              #
-#   Last Update: Oct 8th 2015                                             #
-#   Version: 2.2.0                                                          #
-#   Desc: A ZNC Module to track nicks                                     #
+#   Last Update: Oct 10th 2015                                            #
+#   Version: 3.0.0                                                          # 
+#   Desc: A ZNC Module to track nicks                                     # 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import znc
@@ -10,11 +10,14 @@ import os
 import json
 import socket
 import itertools
+import requests
 
 # CHANGE THIS TO THE USERNAME ZNC RUNS AS
 USERNAME = "znc"
 CONFIG = {
-    "SAVE_EVERY": 60 * 5 # 5 mins
+    "SAVE_EVERY": 60 * 5, # 5 mins
+    "TEMP_FILES": False,
+    "DEBUG_MODE": False
 }
 
 class SaveTimer(znc.Timer):
@@ -47,9 +50,26 @@ class Aka(znc.Module):
 
         self.timer = self.CreateTimer(SaveTimer)
         self.timer.Start(CONFIG.get("SAVE_EVERY", 60 * 5))
+
+        # Do some checks
+        if not os.path.exists(self.MODFOLDER):
+            self.PutModule("Missing MODFOLDER")
+            return False
+        if not os.path.exists(self.MODFOLDER + "config.json"):
+            self.PutModule("Missing config file")
+            return False
+        if not os.path.exists(self.MODFOLDER + self.NETWORK + "_hosts.json"):
+            self.PutModule("%s_hosts.json file was not created" % self.NETWORK)
+            return False
+        if not os.path.exists(self.MODFOLDER + self.NETWORK + "_chans.json"):
+            self.PutModule("%s_hosts.json file was not created" % self.NETWORK)
+            return False
+        # If there was no problems setting up then load the script
         return True
 
     def process(self, host, nick):
+        if CONFIG.get("DEBUG_MODE", False):
+            self.PutModule("DEBUG: Adding %s => %s" % (nick, host))
         if host not in self.hosts:
             self.hosts[host] = []
             self.hosts[host].append(nick)
@@ -58,6 +78,8 @@ class Aka(znc.Module):
                 self.hosts[host].append(nick)
 
     def process_chan(self, host, nick, channel):
+        if CONFIG.get("DEBUG_MODE", False):
+            self.PutModule("DEBUG: Adding %s => (%s, %s)" % (channel, nick, host))
         if channel not in self.channels:
             self.channels[channel] = []
             self.channels[channel].append((nick, host))
@@ -110,9 +132,9 @@ class Aka(znc.Module):
                 itertools.chain(*chan_list)) if all(
                     item in lst for lst in chan_list)]
         if common:
-            self.PutModule("Common channels %s" % (' '.join(sorted(set(common),key=str.lower))))
+            self.PutModule("Common channels %s" % (' '.join(sorted(set(common), key=str.lower))))
         else:
-            self.PutModule("No common channels.")
+            self.PutModule("No comman channels.")
 
     def cmd_trace_intersect(self, chans):
         for chan in chans:
@@ -128,9 +150,9 @@ class Aka(znc.Module):
                         itertools.chain(*nick_list)) if all(
                             item in lst for lst in nick_list)]
         if common:
-            self.PutModule("%s share those channels" % ', '.join(sorted(set(common),key=str.lower)))
+            self.PutModule("%s share those channels" % ', '.join(sorted(set(common), key=str.lower)))
         else:
-            self.PutModule("No shared nicks" % ' '.join(common))
+            self.PutModule("No shared nicks" % ' '.join(sort(set(common), key=str.lower)))
 
     def cmd_trace_hostchans(self, host):
         found = []
@@ -139,7 +161,7 @@ class Aka(znc.Module):
                 if host == user[1]:
                     found.append(chan)
         if found:
-            self.PutModule("%s was found in %s" % (host, ' '.join(sorted(set(found),key=str.lower))))
+            self.PutModule("%s was found in %s" % (host, ' '.join(sorted(set(found), key=str.lower))))
         else:
             self.PutModule("%s was not found in any channels." % (host))
 
@@ -148,15 +170,16 @@ class Aka(znc.Module):
         for host in self.hosts:
             if nick in self.hosts[host]:
                 hosts += 1
-                self.PutModule("%s was also known as: %s (%s)" %(
+                self.PutModule("%s was also know as: %s (%s)" %(
                     nick, ', '.join(sorted(set(self.hosts[host]), key=str.lower)), host))
         if not hosts:
             self.PutModule("No nicks found for %s" % nick)
 
+
     def cmd_trace_host(self, host):
         if host in self.hosts:
-            self.PutModule("%s was also known as: %s" %(
-                host, ', '.join(sorted(self.hosts[host]))))
+            self.PutModule("%s was also know as: %s" %(
+                host, ', '.join(sorted(set(self.hosts[host]), key=str.lower))))
         else:
             self.PutModule("No nicks found for %s" % host)
 
@@ -171,12 +194,33 @@ class Aka(znc.Module):
         self.process(host, nick)
         self.PutModule("%s => %s" % (nick, host))
 
+    def cmd_merge_hosts(self, URL):
+        """
+        Consolidates two *_hosts.json files
+        """
+        nicks = 0
+        hosts = 0
+        idata = json.loads(requests.get(URL).text)
+        for host in idata:
+            if host in self.hosts:
+                for nick in idata[host]:
+                    if not nick in self.hosts[host]:
+                        self.hosts[host].append(nick)
+                        nicks += 1
+            else:
+                self.hosts[host] = idata[host]
+                hosts += 1
+                nicks += len(idata[host])
+        self.PutModule("%i nicks imported" % nicks)
+        self.PutModule("%i hosts imported" % hosts)
+
     def cmd_help(self):
         self.PutModule("Help comming soon =P")
 
+
     def OnModCommand(self, command):
         # Valid Commands
-        cmds = ["trace", "help", "config", "save", "add"]
+        cmds = ["trace", "help", "config", "save", "add", "merge"]
         if command.split()[0] in cmds:
             if command.split()[0] == "trace":
                 if command.split()[1] == "sharedchans":
@@ -197,14 +241,27 @@ class Aka(znc.Module):
                 self.cmd_add(command.split()[1], command.split()[2])
             elif command.split()[0] == "help":
                 self.cmd_help()
+            elif command.split()[0] == "merge":
+                if command.split()[1] == "hosts":
+                    self.cmd_merge_hosts(command.split()[2])
         else:
             self.PutModule("%s is not a valid command." % command)
 
     def save(self):
-        with open(self.MODFOLDER + self.NETWORK + "_hosts.json", 'w') as f:
-            f.write(json.dumps(self.hosts, sort_keys=True, indent=4))
-        with open(self.MODFOLDER + self.NETWORK + "_chans.json", 'w') as f:
-            f.write(json.dumps(self.channels, sort_keys=True, indent=4))
+        if CONFIG.get("TEMP_FILES", False):
+            with open(self.MODFOLDER + self.NETWORK + "_hosts.json.temp", 'w') as f:
+                f.write(json.dumps(self.hosts, sort_keys=True, indent=4))
+            with open(self.MODFOLDER + self.NETWORK + "_chans.json.temp", 'w') as f:
+                f.write(json.dumps(self.channels, sort_keys=True, indent=4))
+            os.rename(self.MODFOLDER + self.NETWORK + "_hosts.json.temp",
+                      self.MODFOLDER + self.NETWORK + "_hosts.json")
+            os.rename(self.MODFOLDER + self.NETWORK + "_chans.json.temp",
+                      self.MODFOLDER + self.NETWORK + "_chans.json")
+        else:
+            with open(self.MODFOLDER + self.NETWORK + "_hosts.json", 'w') as f:
+                f.write(json.dumps(self.hosts, sort_keys=True, indent=4))
+            with open(self.MODFOLDER + self.NETWORK + "_chans.json", 'w') as f:
+                f.write(json.dumps(self.channels, sort_keys=True, indent=4))
 
     def change_config(self, var_name, value):
         if var_name in CONFIG:
@@ -219,6 +276,26 @@ class Aka(znc.Module):
             with open(self.MODFOLDER + "config.json", 'w') as f:
                 f.write(json.dumps(CONFIG, sort_keys=True, indent=4))
             return True
+        elif var_name == "DEBUG_MODE":
+            if int(value) in [0, 1]:
+                if int(value) == 0:
+                    CONFIG["DEBUG_MODE"] = False
+                    self.PutModule("Debug mode: OFF")
+                elif int(value) == 1:
+                    CONFIG["DEBUG_MODE"] = True
+                    self.PutModule("Debug mode: ON")
+            else:
+                self.PutModule("valid values: 0, 1")
+        elif var_name == "TEMP_FILES":
+            if int(value) in [0, 1]:
+                if int(value) == 0:
+                    CONFIG["TEMP_FILES"] = False
+                    self.PutModule("Temp Files: OFF")
+                elif int(value) == 1:
+                    CONFIG["TEMP_FILES"] = True
+                    self.PutModule("Temp Files: ON")
+            else:
+                self.PutModule("valid values: 0, 1")
         else:
-            self.PutModule("%s is not a valid var." % command.split()[1])
+            self.PutModule("%s is not a valid var." % var_name)
             return False

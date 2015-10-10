@@ -26,3 +26,8 @@
 
 ### Version 2.1.1:
   * Spelling and grammar fixes
+
+### Version 3.0.0
+  * Code refactoring
+  * Added checks to ensure all files and folders are created before loading
+  * New command merge hosts combine someone else's *_hosts.json with yours!
