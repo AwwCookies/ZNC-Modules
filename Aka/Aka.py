@@ -137,7 +137,7 @@ class Aka(znc.Module):
         if common:
             self.PutModule("Common channels %s" % (' '.join(sorted(set(common), key=str.lower))))
         else:
-            self.PutModule("No comman channels.")
+            self.PutModule("No common channels.")
 
     def cmd_trace_intersect(self, chans):
         for chan in chans:
