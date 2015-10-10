@@ -14,15 +14,15 @@
 
 ### Version 2.0:
   * Config file is now pretty.
-  * New command hostchans added. prints all the channels a host is in
-  * New command intersect added.  prints all nicks that share channels
-  * New command sharedchans added.  prints all channels shared by those nicks
+  * New command `hostchans` added. prints all the channels a host is in
+  * New command `intersect` added.  prints all nicks that share channels
+  * New command `sharedchans` added.  prints all channels shared by those nicks
 
 ### Version 2.1:
   * Fixed FileNotFoundError bug.
   * You can now manually map nick to host
   * Code refactoring
-  * fixed a bug with sharedchans and intersect
+  * fixed a bug with `sharedchans` and `intersect`
 
 ### Version 2.1.1:
   * Spelling and grammar fixes
@@ -30,4 +30,9 @@
 ### Version 3.0.0
   * Code refactoring
   * Added checks to ensure all files and folders are created before loading
-  * New command merge hosts combine someone else's *_hosts.json with yours!
+  * New command `merge hosts` combine someone else's *_hosts.json with yours!
+
+### Version 3.1.0
+  * New command `merge chans` combine someone else's *_chans.json with yours!
+  * The script will now make you a config file if you don't already have one
+  * Nick searches are now case-insensitive

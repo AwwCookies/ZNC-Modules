@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Author: AwwCookies (Aww)                                              #
 #   Last Update: Oct 10th 2015                                            #
-#   Version: 3.0.0                                                          #
+#   Version: 3.1.0                                                          #
 #   Desc: A ZNC Module to track nicks                                     #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -33,6 +33,9 @@ class Aka(znc.Module):
         if os.path.exists(self.MODFOLDER + "config.json"):
             global CONFIG
             CONFIG = json.loads(open(self.MODFOLDER + "config.json").read())
+        else:
+            with open(self.MODFOLDER + "config.json", 'w') as f:
+                f.write(json.dumps(CONFIG, sort_keys=True, indent=4))
         self.hosts = {}
         if not os.path.exists(self.MODFOLDER + self.NETWORK + "_hosts.json"):
             if not os.path.exists(self.MODFOLDER):
@@ -125,7 +128,7 @@ class Aka(znc.Module):
             chans = []
             for chan in self.channels:
                 for user in self.channels[chan]:
-                    if nick == user[0]:
+                    if nick.lower() == user[0].lower():
                         chans.append(chan)
             chan_list.append(chans)
             common = [item for item in set(
@@ -168,7 +171,7 @@ class Aka(znc.Module):
     def cmd_trace_nick(self, nick):
         hosts = 0
         for host in self.hosts:
-            if nick in self.hosts[host]:
+            if nick.lower() in [n.lower() for n in self.hosts[host]]:
                 hosts += 1
                 self.PutModule("%s was also know as: %s (%s)" %(
                     nick, ', '.join(sorted(set(self.hosts[host]), key=str.lower)), host))
@@ -213,10 +216,31 @@ class Aka(znc.Module):
                 nicks += len(idata[host])
         self.PutModule("%i nicks imported" % nicks)
         self.PutModule("%i hosts imported" % hosts)
+        self.save()
+
+    def cmd_merge_chans(self, URL):
+        """
+        Consolidates two *_chans.json files
+        """
+        chans = 0
+        users = 0
+        idata = json.loads(requests.get(URL).text)
+        for channel in idata:
+            if channel in self.channels:
+                for user in idata[channel]:
+                    if not user in self.channels[channel]:
+                        self.channels[channel].append(user)
+                        users += 1
+            else:
+                self.channels[channel] = idata[channel]
+                chans += 1
+                users += len(idata[channel])
+        self.PutModule("%i users imported" % users)
+        self.PutModule("%i channels imported" % chans)
+        self.save()
 
     def cmd_help(self):
         self.PutModule("Help comming soon =P")
-
 
     def OnModCommand(self, command):
         # Valid Commands
@@ -244,24 +268,34 @@ class Aka(znc.Module):
             elif command.split()[0] == "merge":
                 if command.split()[1] == "hosts":
                     self.cmd_merge_hosts(command.split()[2])
+                elif command.split()[1] == "chans":
+                    self.cmd_merge_chans(command.split()[2])
         else:
             self.PutModule("%s is not a valid command." % command)
 
     def save(self):
         if CONFIG.get("TEMP_FILES", False):
+            # Save hosts
             with open(self.MODFOLDER + self.NETWORK + "_hosts.json.temp", 'w') as f:
                 f.write(json.dumps(self.hosts, sort_keys=True, indent=4))
+            # Save channels
             with open(self.MODFOLDER + self.NETWORK + "_chans.json.temp", 'w') as f:
                 f.write(json.dumps(self.channels, sort_keys=True, indent=4))
+            # Save config
+            with open(self.MODFOLDER + "config.json", 'w') as f:
+                f.write(json.dumps(CONFIG, sort_keys=True, indent=4))
             os.rename(self.MODFOLDER + self.NETWORK + "_hosts.json.temp",
                       self.MODFOLDER + self.NETWORK + "_hosts.json")
             os.rename(self.MODFOLDER + self.NETWORK + "_chans.json.temp",
                       self.MODFOLDER + self.NETWORK + "_chans.json")
+            os.rename(self.MODFOLDER + "config.json.temp", self.MODFOLDER + "config.json")
         else:
             with open(self.MODFOLDER + self.NETWORK + "_hosts.json", 'w') as f:
                 f.write(json.dumps(self.hosts, sort_keys=True, indent=4))
             with open(self.MODFOLDER + self.NETWORK + "_chans.json", 'w') as f:
                 f.write(json.dumps(self.channels, sort_keys=True, indent=4))
+            with open(self.MODFOLDER + "config.json", 'w') as f:
+                f.write(json.dumps(CONFIG, sort_keys=True, indent=4))
 
     def change_config(self, var_name, value):
         if var_name in CONFIG:
