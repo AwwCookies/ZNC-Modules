@@ -122,10 +122,10 @@ class Aka(znc.Module):
         self.process_chan(user.GetHost(), user.GetNick(), channel.GetName())
 
     def cmd_trace_sharedchans(self, nicks):
-        nicklist = ""
+        nick_list = []
         chan_list = []
         for nick in nicks:
-            nicklist += " " + nick
+            nick_list.append(nick)
             chans = []
             for chan in self.channels:
                 for user in self.channels[chan]:
@@ -135,19 +135,23 @@ class Aka(znc.Module):
             common = [item for item in set(
                 itertools.chain(*chan_list)) if all(
                     item in lst for lst in chan_list)]
+        nick_list = ' '.join(sorted(set(nick_list), key=str.lower))
+        chan_list = ' '.join(sorted(set(common), key=str.lower))
+
         if common:
-            self.PutModule("Common channels between" + nicklist  + ": %s" % (' '.join(sorted(set(common), key=str.lower))))
+            self.PutModule("Common channels between %s: %s" % (nick_list, chan_list))
         else:
             self.PutModule("No common channels.")
 
     def cmd_trace_intersect(self, chans):
-        chanlist = ""
+        nick_list = []
+        chan_list = []
         for chan in chans:
             if chan not in self.channels:
                 self.PutModule("Invalid channel %s" % chan)
-        nick_list = []
+
         for chan in chans:
-            chanlist += str(" " + chan)
+            chan_list.append(chan)
             nicks = []
             for user in self.channels[chan]:
                 nicks.append(user[0])
@@ -155,8 +159,11 @@ class Aka(znc.Module):
         common = [item for item in set(
                         itertools.chain(*nick_list)) if all(
                             item in lst for lst in nick_list)]
+        chan_list = ' '.join(sorted(set(chan_list), key=str.lower))
+        nick_list = ' '.join(sorted(set(common), key=str.lower))
+
         if common:
-            self.PutModule("Shared users between" + chanlist + ": %s" % ', '.join(sorted(set(common), key=str.lower)))
+            self.PutModule("Shared users between %s: %s" % (chan_list, nick_list))
         else:
             self.PutModule("No shared nicks" % ' '.join(sort(set(common), key=str.lower)))
 
