@@ -394,4 +394,4 @@ class Aka(znc.Module):
         self.PutModule("merge chans <url> |Merges the chans files from two users")
         self.PutModule("config <variable> <value> | Set configuration variables")
         self.PutModule("help | Print help from the module")
-        self.PutModule("stats | Print nick and host stats for the network”)
+        self.PutModule("stats | Print nick and host stats for the network")
