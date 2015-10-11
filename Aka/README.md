@@ -20,7 +20,7 @@
 
 #### Other Commands
 
-`config <variable> <value` Set configuration variables
+`config <variable> <value>` Set configuration variables
 
 `help` Print help from the module
 
