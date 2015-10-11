@@ -13,7 +13,7 @@ Aka must be loaded on each network you wish to use it on
 
 ## `trace` Commands
 
-`nick <nick>`
+`nick <nick>` Shows nick change and host history for given nick
 
 `sharedchans <nick1> <nick2> ... <nick#>` Show common channels between a list of users
 

@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Author: AwwCookies (Aww)                                          #
 #   Last Update: Oct 10th 2015                                        #
-#   Version: 1.2.6                                                # # #
+#   Version: 1.3.0                                               # # #
 #   Desc: A ZNC Module to track nicks                             # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -265,8 +265,11 @@ class Aka(znc.Module):
         self.PutModule("%s channels imported" % "{:,}".format(chans))
         self.save()
 
-    def cmd_help(self):
-        self.PutModule("https://github.com/AwwCookies/ZNC-Modules/blob/master/Aka/README.md")
+    def cmd_info(self):
+        self.PutModule("Aka nick tracking module by AwwCookies (Aww) - http://wiki.znc.in/Aka")
+
+#    def cmd_help(self):
+#        self.PutModule("https://github.com/AwwCookies/ZNC-Modules/blob/master/Aka/README.md")
 
     def cmd_stats(self):
         nicks = 0
@@ -277,7 +280,7 @@ class Aka(znc.Module):
 
     def OnModCommand(self, command):
         # Valid Commands
-        cmds = ["trace", "help", "config", "save", "add", "merge", "version", "stats"]
+        cmds = ["trace", "help", "config", "info", "save", "add", "merge", "version", "stats"]
         if command.split()[0] in cmds:
             if command.split()[0] == "trace":
                 cmds = ["sharedchans", "intersect", "hostchans", "nickchans", "nick", "host"]
@@ -296,6 +299,8 @@ class Aka(znc.Module):
                         self.cmd_trace_host(command.split()[2])
                 else:
                     self.PutModule("%s is not a valid command." % command)
+            elif command.split()[0] == "info":
+                self.cmd_info()
             elif command.split()[0] == "save":
                 self.cmd_save()
             elif command.split()[0] == "config":
@@ -377,3 +382,16 @@ class Aka(znc.Module):
             else:
                 self.PutModule("%s is not a valid var." % var_name)
         self.save()
+
+    def cmd_help(self):
+        self.PutModule("nick <nick>")
+        self.PutModule("sharedchans <nick1> <nick2> ... <nick#> | Show common channels between a list of users")
+        self.PutModule("intersect <#channel1> <#channel2> ... <#channel#> | Display users common to a list of channels")
+        self.PutModule("hostchans <host> | Get all channels a host has been seen in")
+        self.PutModule("add <nick> <host> | Manually add a nick/host entry to the database")
+        self.PutModule("save | Manually save the latest tracks to disk")
+        self.PutModule("merge hosts <url> | Merges the hosts files from two users")
+        self.PutModule("merge chans <url> |Merges the chans files from two users")
+        self.PutModule("config <variable> <value> | Set configuration variables")
+        self.PutModule("help | Print help from the module")
+        self.PutModule("stats | Print nick and host stats for the network”)

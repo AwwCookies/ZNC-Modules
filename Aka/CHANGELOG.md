@@ -60,3 +60,7 @@
 
 ### Version 1.2.6
   * Added nick and channel inputs to intersect and sharedchans output
+
+### Version 1.3.0
+  * Added `help` output
+  * Added `info` command
