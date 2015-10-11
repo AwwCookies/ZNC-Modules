@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Author: AwwCookies (Aww)                                          #
 #   Last Update: Oct 10th 2015                                        #
-#   Version: 1.3.0                                               # # #
+#   Version: 1.3.1                                               # # #
 #   Desc: A ZNC Module to track nicks                             # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -25,6 +25,7 @@ class SaveTimer(znc.Timer):
 
 class Aka(znc.Module):
     description = "Tracks nicks and hosts, allowing tracing and history viewing"
+    wiki_page = "Aka"
     def OnLoad(self, args, message):
         self.USER = self.GetUser().GetUserName()
         self.NETWORK = self.GetNetwork().GetName()

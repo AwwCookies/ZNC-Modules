@@ -64,3 +64,6 @@
 ### Version 1.3.0
   * Added `help` output
   * Added `info` command
+
+### Version 1.3.1
+  * Added wiki page to module
