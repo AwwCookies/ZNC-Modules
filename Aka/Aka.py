@@ -390,6 +390,8 @@ class Aka(znc.Module):
         self.PutModule("+--------------+-------------------------------------------+----------------------------------------------------+")
         self.PutModule("intersect      | <#channel1> <#channel2> ... <#channel#>   | Display users common to a list of channels")
         self.PutModule("+--------------+-------------------------------------------+----------------------------------------------------+")
+        self.PutModule("nickchans      | <nick>                                    | Get all channels a nick has been seen in")
+        self.PutModule("+--------------+-------------------------------------------+----------------------------------------------------+")
         self.PutModule("hostchans      | <host>                                    | Get all channels a host has been seen in")
         self.PutModule("+--------------+-------------------------------------------+----------------------------------------------------+")
         self.PutModule("add            | <nick> <host>                             | Manually add a nick/host entry to the database")
