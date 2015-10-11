@@ -1,4 +1,17 @@
-#### `trace` Commands
+## Requirements
+ * <a href="http://znc.in">ZNC</a>
+ * <a href="https://www.python.org">Python 3</a>
+ * <a href="http://wiki.znc.in/Modpython">modpython</a>
+ * <a href="http://docs.python-requests.org/en/latest/">python3-requests</a>
+
+## Installation
+To install Aka, place Aka.py in your ZNC modules folder
+
+## Loading
+Aka must be loaded on each network you wish to use it on
+`/msg *status loadmod Aka`
+
+## `trace` Commands
 
 `nick <nick>`
 
@@ -8,7 +21,7 @@
 
 `hostchans <host>` Get all channels a host has been seen in
 
-#### Modify Data Commands
+## Modify Data Commands
 
 `add <nick> <host>` Manually add a nick/host entry to the database
 
@@ -18,7 +31,7 @@
 
 `merge chans <url>` Merges the **chans** files from two users
 
-#### Other Commands
+## Other Commands
 
 `config <variable> <value>` Set configuration variables
 
