@@ -268,9 +268,6 @@ class Aka(znc.Module):
     def cmd_info(self):
         self.PutModule("Aka nick tracking module by AwwCookies (Aww) - http://wiki.znc.in/Aka")
 
-#    def cmd_help(self):
-#        self.PutModule("https://github.com/AwwCookies/ZNC-Modules/blob/master/Aka/README.md")
-
     def cmd_stats(self):
         nicks = 0
         for host in self.hosts:
