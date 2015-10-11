@@ -19,7 +19,7 @@ Aka must be loaded on each network you wish to use it on
 
 `intersect <#channel1> <#channel2> ... <#channel#>` Display users common to a list of channels
 
-`nickchans <nick` Get all channels a nick has been seen in
+`nickchans <nick>` Get all channels a nick has been seen in
 
 `hostchans <host>` Get all channels a host has been seen in
 
