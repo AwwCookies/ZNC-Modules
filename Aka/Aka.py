@@ -174,7 +174,7 @@ class Aka(znc.Module):
                 if host == user[1]:
                     found.append(chan)
         if found:
-            self.PutModule("%s was found in %s" % (host, ' '.join(sorted(set(found), key=str.lower))))
+            self.PutModule("%s was found in: %s" % (host, ' '.join(sorted(set(found), key=str.lower))))
         else:
             self.PutModule("%s was not found in any channels." % (host))
 
@@ -185,7 +185,7 @@ class Aka(znc.Module):
                 if nick.lower() == user[0].lower():
                     found.append(chan)
         if found:
-            self.PutModule("%s was found in %s" % (nick, ' '.join(sorted(set(found), key=str.lower))))
+            self.PutModule("%s was found in: %s" % (nick, ' '.join(sorted(set(found), key=str.lower))))
         else:
             self.PutModule("%s was not found in any channels." % (host))
 
