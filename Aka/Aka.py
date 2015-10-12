@@ -110,7 +110,7 @@ class Aka(znc.Module):
         self.process(user.GetHost(), user.GetNick())
         self.process_chan(user.GetHost(), user.GetNick(), channel.GetName())
 
-    def OnNick(self, user, new_nick, channels):
+    def OnNick(self, user, new_nick, channel):
         self.process(user.GetHost(), new_nick)
         self.process_chan(user.GetHost(), user.GetNick(), channel.GetName())
 
