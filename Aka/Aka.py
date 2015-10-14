@@ -21,7 +21,7 @@ DEFAULT_CONFIG = {
     "DEBUG_MODE": False, # 0/1
     "NOTIFY_ON_JOIN": False, # 0/1
     "NOTIFY_ON_JOIN_TIMEOUT": 300, # Seconds
-    "NOTIFY_DEFAULT_MODE": "nick" # host/nick
+    "NOTIFY_DEFAULT_MODE": "host" # host/nick
 }
 
 class SaveTimer(znc.Timer):
