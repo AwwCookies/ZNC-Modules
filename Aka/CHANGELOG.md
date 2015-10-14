@@ -73,3 +73,6 @@
   * New variable to set limit on notification frequency for a given nick
   * Adds new config variables to file
   * Fixed config variable bug
+
+### Version 1.4.1
+  * Clarified `trace` commands in help
