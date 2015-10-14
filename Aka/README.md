@@ -40,3 +40,12 @@ Aka must be loaded on each network you wish to use it on
 `help` Print help from the module
 
 `stats` Print nick and host stats for the network
+
+## Configuration Variables
+
+ * **SAVE_EVERY** *(seconds)* How often changes are written to disk
+ * **TEMP_FILES** *(0/1)* Whether or not data is stored in temp files or written directly to save files
+ * **DEBUG_MODE** *(0/1)* Display raw output
+ * **NOTIFY_ON_JOIN** *(0/1)* Automatically run `trace nick` when a user joins a channel
+ * **NOTIFY_ON_JOIN_TIMEOUT** *(int: seconds)* How long to wait before sending notification again for same user
+ * **NOTIFY_DEFAULT_MODE** *(nick/host)*

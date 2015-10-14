@@ -14,9 +14,9 @@
 
 ### Version 0.2.0:
   * Config file is now pretty.
-  * New command `hostchans` added. prints all the channels a host is in
-  * New command `intersect` added.  prints all nicks that share channels
-  * New command `sharedchans` added.  prints all channels shared by those nicks
+  * New command `hostchans` added. Prints all the channels a host is in
+  * New command `intersect` added. Prints all nicks that share channels
+  * New command `sharedchans` added. Prints all channels shared by those nicks
 
 ### Version 0.2.1:
   * Fixed FileNotFoundError bug.
@@ -67,3 +67,9 @@
 
 ### Version 1.3.1
   * Added wiki page to module
+
+### Version 1.4.0
+  * Added option to automatically run 'trace nick' for users on channel join
+  * New variable to set limit on notification frequency for a given nick
+  * Adds new config variables to file
+  * Fixed config variable bug

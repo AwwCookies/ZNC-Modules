@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#   Author: AwwCookies (Aww)                                          #
+#   Authors: AwwCookies (Aww), MuffinMedic (Evan)                     #
 #   Last Update: Oct 10th 2015                                        #
-#   Version: 1.3.1                                               # # #
+#   Version: 1.4.0                                               # # #
 #   Desc: A ZNC Module to track nicks                             # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -10,13 +10,17 @@ import os
 import json
 import socket
 import itertools
+import datetime
 
 import requests
 
-CONFIG = {
+DEFAULT_CONFIG = {
     "SAVE_EVERY": 60 * 5, # 5 mins
-    "TEMP_FILES": False,
-    "DEBUG_MODE": False
+    "TEMP_FILES": False, # 0/1
+    "DEBUG_MODE": False, # 0/1
+    "NOTIFY_ON_JOIN": False, # 0/1
+    "NOTIFY_ON_JOIN_TIMEOUT": 300, # Seconds
+    "NOTIFY_DEFAULT_MODE": "nick" # host/nick
 }
 
 class SaveTimer(znc.Timer):
@@ -33,9 +37,12 @@ class Aka(znc.Module):
         if os.path.exists(self.MODFOLDER + "config.json"):
             global CONFIG
             CONFIG = json.loads(open(self.MODFOLDER + "config.json").read())
+            for default in DEFAULT_CONFIG:
+                if default not in CONFIG:
+                    CONFIG[default] = DEFAULT_CONFIG[default]
         else:
             with open(self.MODFOLDER + "config.json", 'w') as f:
-                f.write(json.dumps(CONFIG, sort_keys=True, indent=4))
+                f.write(json.dumps(DEFAULT_CONFIG, sort_keys=True, indent=4))
         self.hosts = {}
         if not os.path.exists(self.MODFOLDER + self.NETWORK + "_hosts.json"):
             if not os.path.exists(self.MODFOLDER):
@@ -67,6 +74,11 @@ class Aka(znc.Module):
         if not os.path.exists(self.MODFOLDER + self.NETWORK + "_chans.json"):
             self.PutModule("%s_hosts.json file was not created" % self.NETWORK)
             return False
+
+        if CONFIG.get("NOTIFY_ON_JOIN", True):
+            global TIMEOUTS
+            TIMEOUTS = {}
+
         # If there was no problems setting up then load the script
         return True
 
@@ -107,8 +119,24 @@ class Aka(znc.Module):
             self.process(host, nick)
 
     def OnJoin(self, user, channel):
+        ''' TO ADD
+        Place in channel instead of PM
+        self.PutUser(":*Aka!Aka@znc.in PRIVMSG " + channel.GetName() + " :" + str(user.GetNick()) + " has joined")
+        '''
         self.process(user.GetHost(), user.GetNick())
         self.process_chan(user.GetHost(), user.GetNick(), channel.GetName())
+        if CONFIG.get("NOTIFY_ON_JOIN", True) and user.GetNick() != self.GetUser().GetNick():
+            if user.GetNick() in TIMEOUTS:
+                diff = datetime.datetime.now() - TIMEOUTS[user.GetNick()]
+                if diff.total_seconds() > CONFIG["NOTIFY_ON_JOIN_TIMEOUT"]:
+                    self.PutModule(user.GetNick() + " (" + user.GetHost() + ")" + " has joined " + channel.GetName())
+                    if CONFIG["NOTIFY_DEFAULT_MODE"] == "nick":
+                        self.cmd_trace_nick(user.GetNick())
+                    elif CONFIG["NOTIFY_DEFAULT_MODE"] == "host":
+                        self.cmd_trace_host(user.GetHost())
+                    TIMEOUTS[user.GetNick()] = datetime.datetime.now()
+            else:
+                TIMEOUTS[user.GetNick()] = datetime.datetime.now()
 
     def OnNick(self, user, new_nick, channel):
         self.process(user.GetHost(), new_nick)
@@ -267,7 +295,7 @@ class Aka(znc.Module):
         self.save()
 
     def cmd_info(self):
-        self.PutModule("Aka nick tracking module by AwwCookies (Aww) - http://wiki.znc.in/Aka")
+        self.PutModule("Aka nick tracking module by AwwCookies (Aww) and MuffinMedic (Evan) - http://wiki.znc.in/Aka")
 
     def cmd_stats(self):
         nicks = 0
@@ -350,7 +378,7 @@ class Aka(znc.Module):
     def change_config(self, var_name, value):
         if var_name in CONFIG:
             if var_name == "SAVE_EVERY":
-                if int(value) > 1:
+                if int(value) >= 1:
                     CONFIG["SAVE_EVERY"] = int(value)
                     self.timer.Stop()
                     self.timer.Start(CONFIG["SAVE_EVERY"])
@@ -376,7 +404,35 @@ class Aka(znc.Module):
                         CONFIG["TEMP_FILES"] = True
                         self.PutModule("Temp Files: ON")
                 else:
-                    self.PutModule("valid values: 0, 1")
+                    self.PutModule("Valid values: 0, 1")
+            elif var_name == "NOTIFY_ON_JOIN":
+                if int(value) in [0, 1]:
+                    if int(value) == 0:
+                        CONFIG["NOTIFY_ON_JOIN"] = False
+                        self.PutModule("Notify On Join: OFF")
+                    elif int(value) == 1:
+                        CONFIG["NOTIFY_ON_JOIN"] = True
+                        self.PutModule("Notify On Join: ON")
+                else:
+                    self.PutModule("Valid values: 0, 1")
+            elif var_name == "NOTIFY_ON_JOIN_TIMEOUT":
+                if int(value) >= 1:
+                    CONFIG["NOTIFY_ON_JOIN_TIMEOUT"] = int(value)
+                    self.timer.Stop()
+                    self.timer.Start(CONFIG["NOTIFY_ON_JOIN_TIMEOUT"])
+                    self.PutModule("%s => %s" % (var_name, str(value)))
+                else:
+                    self.PutModule("Please use an int value larger than 0")
+            elif var_name == "NOTIFY_DEFAULT_MODE":
+                if str(value) in ["nick", "host"]:
+                    if str(value) == "nick":
+                        CONFIG["NOTIFY_DEFAULT_MODE"] = "nick"
+                        self.PutModule("Notify Mode: NICK")
+                    elif str(value) == "host":
+                        CONFIG["NOTIFY_DEFAULT_MODE"] = "host"
+                        self.PutModule("Notify Mode: HOST")
+                else:
+                    self.PutModule("Valid values: nick, host")
             else:
                 self.PutModule("%s is not a valid var." % var_name)
         self.save()
@@ -401,7 +457,7 @@ class Aka(znc.Module):
         self.PutModule("+--------------+-------------------------------------------+----------------------------------------------------+")
         self.PutModule("| merge chans  | <url>                                     | Merges the chans files from two users")
         self.PutModule("+--------------+-------------------------------------------+----------------------------------------------------+")
-        self.PutModule("| config       | <variable> <value>                        | Set configuration variables")
+        self.PutModule("| config       | <variable> <value>                        | Set configuration variables (See README)")
         self.PutModule("+--------------+-------------------------------------------+----------------------------------------------------+")
         self.PutModule("| save         |                                           | Manually save the latest tracks to disk")
         self.PutModule("+--------------+-------------------------------------------+----------------------------------------------------+")
