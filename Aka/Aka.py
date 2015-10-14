@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                     #
 #   Last Update: Oct 14th 2015                                        #
-#   Version: 1.4.1                                               # # #
+#   Version: 1.5.0                                               # # #
 #   Desc: A ZNC Module to track nicks                             # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -11,6 +11,7 @@ import json
 import socket
 import itertools
 import datetime
+import urllib.request
 
 import requests
 
@@ -306,7 +307,7 @@ class Aka(znc.Module):
 
     def OnModCommand(self, command):
         # Valid Commands
-        cmds = ["trace", "help", "config", "info", "save", "add", "merge", "version", "stats"]
+        cmds = ["trace", "help", "config", "info", "save", "add", "merge", "version", "stats", "update"]
         if command.split()[0] in cmds:
             if command.split()[0] == "trace":
                 cmds = ["sharedchans", "intersect", "hostchans", "nickchans", "nick", "host"]
@@ -348,6 +349,8 @@ class Aka(znc.Module):
                 self.cmd_version()
             elif command.split()[0] == "stats":
                 self.cmd_stats()
+            elif command.split()[0] == "update":
+                self.update()
         else:
             self.PutModule("%s is not a valid command." % command)
 
@@ -436,6 +439,12 @@ class Aka(znc.Module):
             else:
                 self.PutModule("%s is not a valid var." % var_name)
         self.save()
+
+    def update(self):
+        new_version = urllib.request.urlopen("https://raw.githubusercontent.com/AwwCookies/ZNC-Modules/master/Aka/Aka.py")
+        with open(self.GetModPath(), 'w') as f:
+            f.write(new_version.read().decode('utf-8'))
+        self.PutModule("Aka successfully updated. Please reload Aka on all networks")
 
     def cmd_help(self):
         self.PutModule("+====================+===========================================+======================================================+")

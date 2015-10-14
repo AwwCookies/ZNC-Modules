@@ -41,6 +41,8 @@ Aka must be loaded on each network you wish to use it on
 
 `stats` Print nick and host stats for the network
 
+`update` Updates Aka to the newest version
+
 ## Configuration Variables
 
  * **SAVE_EVERY** *(seconds)* How often changes are written to disk

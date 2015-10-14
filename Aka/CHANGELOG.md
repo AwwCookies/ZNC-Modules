@@ -76,3 +76,6 @@
 
 ### Version 1.4.1
   * Clarified `trace` commands in help
+
+### Version 1.5.0
+  * New 'update' command to auto-update from master
