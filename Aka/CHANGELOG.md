@@ -79,3 +79,7 @@
 
 ### Version 1.5.0
   * New 'update' command to auto-update from master
+
+### Version 1.5.1
+  * Relocated save files to proper location
+  * Added on join trace for new users

@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                     #
 #   Last Update: Oct 14th 2015                                        #
-#   Version: 1.5.0                                               # # #
+#   Version: 1.5.1                                               # # #
 #   Desc: A ZNC Module to track nicks                             # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -12,6 +12,7 @@ import socket
 import itertools
 import datetime
 import urllib.request
+import shutil
 
 import requests
 
@@ -32,51 +33,63 @@ class Aka(znc.Module):
     description = "Tracks nicks and hosts, allowing tracing and history viewing"
     wiki_page = "Aka"
     def OnLoad(self, args, message):
+
         self.USER = self.GetUser().GetUserName()
         self.NETWORK = self.GetNetwork().GetName()
-        self.MODFOLDER = znc.CUser(self.USER).GetUserPath() + "/moddata/Aka/"
-        if os.path.exists(self.MODFOLDER + "config.json"):
+
+        ''' Copy old data files to new ones '''
+        self.old_MODFOLDER = znc.CUser(self.USER).GetUserPath() + "/moddata/Aka/"
+
+        if os.path.exists(self.old_MODFOLDER + "config.json") and not os.path.exists(self.GetSavePath() + "/hosts.json"):
+            shutil.copyfile(self.old_MODFOLDER + "config.json", self.GetSavePath() + "/config.json")
+            # os.remove(self.old_MODFOLDER + "CONFIG[self.NETWORK].json")
+        if os.path.exists(self.old_MODFOLDER + self.NETWORK + "_hosts.json"):
+            shutil.copyfile(self.old_MODFOLDER + self.NETWORK + "_hosts.json", self.GetSavePath() + "/hosts.json")
+            os.remove(self.old_MODFOLDER + self.NETWORK + "_hosts.json")
+        if os.path.exists(self.old_MODFOLDER + self.NETWORK + "_chans.json"):
+            shutil.copyfile(self.old_MODFOLDER + self.NETWORK + "_chans.json", self.GetSavePath() + "/chans.json")
+            os.remove(self.old_MODFOLDER + self.NETWORK + "_chans.json")
+
+        if os.path.exists(self.GetSavePath() + "/config.json"):
             global CONFIG
-            CONFIG = json.loads(open(self.MODFOLDER + "config.json").read())
+            CONFIG[self.NETWORK] = json.loads(open(self.GetSavePath() + "/config.json").read())
             for default in DEFAULT_CONFIG:
-                if default not in CONFIG:
-                    CONFIG[default] = DEFAULT_CONFIG[default]
+                if default not in CONFIG[self.NETWORK]:
+                    CONFIG[self.NETWORK][default] = DEFAULT_CONFIG[default]
         else:
-            with open(self.MODFOLDER + "config.json", 'w') as f:
+            with open(self.GetSavePath() + "/config.json", 'w') as f:
                 f.write(json.dumps(DEFAULT_CONFIG, sort_keys=True, indent=4))
         self.hosts = {}
-        if not os.path.exists(self.MODFOLDER + self.NETWORK + "_hosts.json"):
-            if not os.path.exists(self.MODFOLDER):
-                os.mkdir(self.MODFOLDER)
-            with open(self.MODFOLDER + self.NETWORK + "_hosts.json", 'w') as f:
+        if not os.path.exists(self.GetSavePath() + "/hosts.json"):
+            with open(self.GetSavePath() + "/hosts.json", 'w') as f:
                 f.write(json.dumps(self.hosts))
         else:
-            self.hosts = json.loads(open(self.MODFOLDER + self.NETWORK + "_hosts.json", 'r').read())
+            self.hosts = json.loads(open(self.GetSavePath() + "/hosts.json", 'r').read())
         self.channels = {}
-        if not os.path.exists(self.MODFOLDER + self.NETWORK + "_chans.json"):
-            with open(self.MODFOLDER + self.NETWORK + "_chans.json", 'w') as f:
+        if not os.path.exists(self.GetSavePath() + "/chans.json"):
+            with open(self.GetSavePath() + "/chans.json", 'w') as f:
                 f.write(json.dumps(self.channels))
         else:
-            self.channels = json.loads(open(self.MODFOLDER + self.NETWORK + "_chans.json", 'r').read())
-
-        self.timer = self.CreateTimer(SaveTimer)
-        self.timer.Start(CONFIG.get("SAVE_EVERY", 60 * 5))
+            self.channels = json.loads(open(self.GetSavePath() + "/chans.json", 'r').read())
 
         # Do some checks
-        if not os.path.exists(self.MODFOLDER):
+        if not os.path.exists(self.GetSavePath()):
             self.PutModule("Missing MODFOLDER")
             return False
-        if not os.path.exists(self.MODFOLDER + "config.json"):
-            self.PutModule("Missing config file")
+        if not os.path.exists(self.GetSavePath() + "/config.json"):
+            self.PutModule("Missing CONFIG file")
             return False
-        if not os.path.exists(self.MODFOLDER + self.NETWORK + "_hosts.json"):
-            self.PutModule("%s_hosts.json file was not created" % self.NETWORK)
+        if not os.path.exists(self.GetSavePath() + "/hosts.json"):
+            self.PutModule("%shosts.json file was not created" % self.NETWORK)
             return False
-        if not os.path.exists(self.MODFOLDER + self.NETWORK + "_chans.json"):
-            self.PutModule("%s_hosts.json file was not created" % self.NETWORK)
+        if not os.path.exists(self.GetSavePath() + "/chans.json"):
+            self.PutModule("%shosts.json file was not created" % self.NETWORK)
             return False
 
-        if CONFIG.get("NOTIFY_ON_JOIN", True):
+        self.timer = self.CreateTimer(SaveTimer)
+        self.timer.Start(CONFIG[self.NETWORK].get("SAVE_EVERY", 60 * 5))
+
+        if CONFIG[self.NETWORK].get("NOTIFY_ON_JOIN", True):
             global TIMEOUTS
             TIMEOUTS = {}
 
@@ -84,7 +97,7 @@ class Aka(znc.Module):
         return True
 
     def process(self, host, nick):
-        if CONFIG.get("DEBUG_MODE", False):
+        if CONFIG[self.NETWORK].get("DEBUG_MODE", False):
             self.PutModule("DEBUG: Adding %s => %s" % (nick, host))
         if host not in self.hosts:
             self.hosts[host] = []
@@ -94,7 +107,7 @@ class Aka(znc.Module):
                 self.hosts[host].append(nick)
 
     def process_chan(self, host, nick, channel):
-        if CONFIG.get("DEBUG_MODE", False):
+        if CONFIG[self.NETWORK].get("DEBUG_MODE", False):
             self.PutModule("DEBUG: Adding %s => (%s, %s)" % (channel, nick, host))
         if channel not in self.channels:
             self.channels[channel] = []
@@ -126,17 +139,22 @@ class Aka(znc.Module):
         '''
         self.process(user.GetHost(), user.GetNick())
         self.process_chan(user.GetHost(), user.GetNick(), channel.GetName())
-        if CONFIG.get("NOTIFY_ON_JOIN", True) and user.GetNick() != self.GetUser().GetNick():
+        if CONFIG[self.NETWORK].get("NOTIFY_ON_JOIN", True) and user.GetNick() != self.GetUser().GetNick():
             if user.GetNick() in TIMEOUTS:
                 diff = datetime.datetime.now() - TIMEOUTS[user.GetNick()]
-                if diff.total_seconds() > CONFIG["NOTIFY_ON_JOIN_TIMEOUT"]:
+                if diff.total_seconds() > CONFIG[self.NETWORK]["NOTIFY_ON_JOIN_TIMEOUT"]:
                     self.PutModule(user.GetNick() + " (" + user.GetHost() + ")" + " has joined " + channel.GetName())
-                    if CONFIG["NOTIFY_DEFAULT_MODE"] == "nick":
+                    if CONFIG[self.NETWORK]["NOTIFY_DEFAULT_MODE"] == "nick":
                         self.cmd_trace_nick(user.GetNick())
-                    elif CONFIG["NOTIFY_DEFAULT_MODE"] == "host":
+                    elif CONFIG[self.NETWORK]["NOTIFY_DEFAULT_MODE"] == "host":
                         self.cmd_trace_host(user.GetHost())
                     TIMEOUTS[user.GetNick()] = datetime.datetime.now()
             else:
+                self.PutModule(user.GetNick() + " (" + user.GetHost() + ")" + " has joined " + channel.GetName())
+                if CONFIG[self.NETWORK]["NOTIFY_DEFAULT_MODE"] == "nick":
+                    self.cmd_trace_nick(user.GetNick())
+                elif CONFIG[self.NETWORK]["NOTIFY_DEFAULT_MODE"] == "host":
+                    self.cmd_trace_host(user.GetHost())
                 TIMEOUTS[user.GetNick()] = datetime.datetime.now()
 
     def OnNick(self, user, new_nick, channel):
@@ -255,7 +273,7 @@ class Aka(znc.Module):
 
     def cmd_merge_hosts(self, URL):
         """
-        Consolidates two *_hosts.json files
+        Consolidates two *hosts.json files
         """
         nicks = 0
         hosts = 0
@@ -276,7 +294,7 @@ class Aka(znc.Module):
 
     def cmd_merge_chans(self, URL):
         """
-        Consolidates two *_chans.json files
+        Consolidates two *chans.json files
         """
         chans = 0
         users = 0
@@ -355,84 +373,84 @@ class Aka(znc.Module):
             self.PutModule("%s is not a valid command." % command)
 
     def save(self):
-        if CONFIG.get("TEMP_FILES", False):
+        if CONFIG[self.NETWORK].get("TEMP_FILES", False):
             # Save hosts
-            with open(self.MODFOLDER + self.NETWORK + "_hosts.json.temp", 'w') as f:
+            with open(self.GetSavePath() + "hosts.json.temp", 'w') as f:
                 f.write(json.dumps(self.hosts, sort_keys=True, indent=4))
             # Save channels
-            with open(self.MODFOLDER + self.NETWORK + "_chans.json.temp", 'w') as f:
+            with open(self.GetSavePath() + "chans.json.temp", 'w') as f:
                 f.write(json.dumps(self.channels, sort_keys=True, indent=4))
-            # Save config
-            with open(self.MODFOLDER + "config.json", 'w') as f:
-                f.write(json.dumps(CONFIG, sort_keys=True, indent=4))
-            os.rename(self.MODFOLDER + self.NETWORK + "_hosts.json.temp",
-                      self.MODFOLDER + self.NETWORK + "_hosts.json")
-            os.rename(self.MODFOLDER + self.NETWORK + "_chans.json.temp",
-                      self.MODFOLDER + self.NETWORK + "_chans.json")
-            os.rename(self.MODFOLDER + "config.json.temp", self.MODFOLDER + "config.json")
+            # Save CONFIG
+            with open(self.GetSavePath() + "/config.json", 'w') as f:
+                f.write(json.dumps(CONFIG[self.NETWORK], sort_keys=True, indent=4))
+            os.rename(self.GetSavePath() + "hosts.json.temp",
+                      self.GetSavePath() + "/hosts.json")
+            os.rename(self.GetSavePath() + "chans.json.temp",
+                      self.GetSavePath() + "/chans.json")
+            os.rename(self.GetSavePath() + "config.json.temp", self.GetSavePath() + "/config.json")
         else:
-            with open(self.MODFOLDER + self.NETWORK + "_hosts.json", 'w') as f:
+            with open(self.GetSavePath() + "/hosts.json", 'w') as f:
                 f.write(json.dumps(self.hosts, sort_keys=True, indent=4))
-            with open(self.MODFOLDER + self.NETWORK + "_chans.json", 'w') as f:
+            with open(self.GetSavePath() + "/chans.json", 'w') as f:
                 f.write(json.dumps(self.channels, sort_keys=True, indent=4))
-            with open(self.MODFOLDER + "config.json", 'w') as f:
-                f.write(json.dumps(CONFIG, sort_keys=True, indent=4))
+            with open(self.GetSavePath() + "/config.json", 'w') as f:
+                f.write(json.dumps(CONFIG[self.NETWORK], sort_keys=True, indent=4))
 
     def change_config(self, var_name, value):
-        if var_name in CONFIG:
+        if var_name in CONFIG[self.NETWORK]:
             if var_name == "SAVE_EVERY":
                 if int(value) >= 1:
-                    CONFIG["SAVE_EVERY"] = int(value)
+                    CONFIG[self.NETWORK]["SAVE_EVERY"] = int(value)
                     self.timer.Stop()
-                    self.timer.Start(CONFIG["SAVE_EVERY"])
+                    self.timer.Start(CONFIG[self.NETWORK]["SAVE_EVERY"])
                     self.PutModule("%s => %s" % (var_name, str(value)))
                 else:
                     self.PutModule("Please use an int value larger than 0")
             elif var_name == "DEBUG_MODE":
                 if int(value) in [0, 1]:
                     if int(value) == 0:
-                        CONFIG["DEBUG_MODE"] = False
+                        CONFIG[self.NETWORK]["DEBUG_MODE"] = False
                         self.PutModule("Debug mode: OFF")
                     elif int(value) == 1:
-                        CONFIG["DEBUG_MODE"] = True
+                        CONFIG[self.NETWORK]["DEBUG_MODE"] = True
                         self.PutModule("Debug mode: ON")
                 else:
                     self.PutModule("valid values: 0, 1")
             elif var_name == "TEMP_FILES":
                 if int(value) in [0, 1]:
                     if int(value) == 0:
-                        CONFIG["TEMP_FILES"] = False
+                        CONFIG[self.NETWORK]["TEMP_FILES"] = False
                         self.PutModule("Temp Files: OFF")
                     elif int(value) == 1:
-                        CONFIG["TEMP_FILES"] = True
+                        CONFIG[self.NETWORK]["TEMP_FILES"] = True
                         self.PutModule("Temp Files: ON")
                 else:
                     self.PutModule("Valid values: 0, 1")
             elif var_name == "NOTIFY_ON_JOIN":
                 if int(value) in [0, 1]:
                     if int(value) == 0:
-                        CONFIG["NOTIFY_ON_JOIN"] = False
+                        CONFIG[self.NETWORK]["NOTIFY_ON_JOIN"] = False
                         self.PutModule("Notify On Join: OFF")
                     elif int(value) == 1:
-                        CONFIG["NOTIFY_ON_JOIN"] = True
+                        CONFIG[self.NETWORK]["NOTIFY_ON_JOIN"] = True
                         self.PutModule("Notify On Join: ON")
                 else:
                     self.PutModule("Valid values: 0, 1")
             elif var_name == "NOTIFY_ON_JOIN_TIMEOUT":
                 if int(value) >= 1:
-                    CONFIG["NOTIFY_ON_JOIN_TIMEOUT"] = int(value)
+                    CONFIG[self.NETWORK]["NOTIFY_ON_JOIN_TIMEOUT"] = int(value)
                     self.timer.Stop()
-                    self.timer.Start(CONFIG["NOTIFY_ON_JOIN_TIMEOUT"])
+                    self.timer.Start(CONFIG[self.NETWORK]["NOTIFY_ON_JOIN_TIMEOUT"])
                     self.PutModule("%s => %s" % (var_name, str(value)))
                 else:
                     self.PutModule("Please use an int value larger than 0")
             elif var_name == "NOTIFY_DEFAULT_MODE":
                 if str(value) in ["nick", "host"]:
                     if str(value) == "nick":
-                        CONFIG["NOTIFY_DEFAULT_MODE"] = "nick"
+                        CONFIG[self.NETWORK]["NOTIFY_DEFAULT_MODE"] = "nick"
                         self.PutModule("Notify Mode: NICK")
                     elif str(value) == "host":
-                        CONFIG["NOTIFY_DEFAULT_MODE"] = "host"
+                        CONFIG[self.NETWORK]["NOTIFY_DEFAULT_MODE"] = "host"
                         self.PutModule("Notify Mode: HOST")
                 else:
                     self.PutModule("Valid values: nick, host")
@@ -444,6 +462,7 @@ class Aka(znc.Module):
         new_version = urllib.request.urlopen("https://raw.githubusercontent.com/AwwCookies/ZNC-Modules/master/Aka/Aka.py")
         with open(self.GetModPath(), 'w') as f:
             f.write(new_version.read().decode('utf-8'))
+        # self.ReloadModule()
         self.PutModule("Aka successfully updated. Please reload Aka on all networks")
 
     def cmd_help(self):
@@ -466,7 +485,7 @@ class Aka(znc.Module):
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| merge chans        | <url>                                     | Merges the chans files from two users")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| config             | <variable> <value>                        | Set configuration variables (See README)")
+        self.PutModule("| config             | <variable> <value>                        | Set configururation variables per network (See README)")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| save               |                                           | Manually save the latest tracks to disk")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
