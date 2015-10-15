@@ -35,13 +35,17 @@ Aka must be loaded on each network you wish to use it on
 
 ## Other Commands
 
-`config <variable> <value>` Set configuration variables
+`info` Display information about the module
 
-`help` Print help from the module
+`version` Get current module version
+
+`config <variable> <value>` Set configuration variables
 
 `stats` Print nick and host stats for the network
 
 `update` Updates Aka to the newest version
+
+`help` Print help from the module
 
 ## Configuration Variables
 
