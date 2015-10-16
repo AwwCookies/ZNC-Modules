@@ -23,6 +23,10 @@ Aka must be loaded on each network you wish to use it on
 
 `hostchans <host>` Get all channels a host has been seen in
 
+## User Info Commands
+
+`geoip <host>` Geolocates the given host
+
 ## Modify Data Commands
 
 `add <nick> <host>` Manually add a nick/host entry to the database

@@ -28,6 +28,7 @@
   * Spelling and grammar fixes
 
 ### Version 1.0.0:
+  * Public release
   * Code refactoring
   * Added checks to ensure all files and folders are created before loading
   * New command `merge hosts` combine someone else's \*\_hosts.json with yours!
@@ -56,7 +57,7 @@
   * Fixed initialization error
 
 ### Version 1.2.5
-  * Spelling fixes
+  * Spelling fixes *(Credit: @Equinox)*
 
 ### Version 1.2.6
   * Added nick and channel inputs to intersect and sharedchans output
@@ -83,3 +84,8 @@
 ### Version 1.5.1
   * Relocated save files to proper location
   * Added on join trace for new users
+
+### Version 1.5.2
+  * Added `geoip` command
+  * Module reloads after update
+  * Fixed OnNick and OnQuit bug *(Credit: @KindOne-)*

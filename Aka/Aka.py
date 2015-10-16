@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                     #
-#   Last Update: Oct 15th 2015                                        #
-#   Version: 1.5.1                                               # # #
+#   Last Update: Oct 16th 2015                                        #
+#   Version: 1.5.2                                               # # #
 #   Desc: A ZNC Module to track nicks                             # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -13,6 +13,7 @@ import itertools
 import datetime
 import urllib.request
 import shutil
+import re
 
 import requests
 
@@ -50,8 +51,10 @@ class Aka(znc.Module):
             shutil.copyfile(self.old_MODFOLDER + self.NETWORK + "_chans.json", self.GetSavePath() + "/chans.json")
             os.remove(self.old_MODFOLDER + self.NETWORK + "_chans.json")
 
+        global CONFIG
+        CONFIG = {}
+
         if os.path.exists(self.GetSavePath() + "/config.json"):
-            global CONFIG
             CONFIG[self.NETWORK] = json.loads(open(self.GetSavePath() + "/config.json").read())
             for default in DEFAULT_CONFIG:
                 if default not in CONFIG[self.NETWORK]:
@@ -59,12 +62,15 @@ class Aka(znc.Module):
         else:
             with open(self.GetSavePath() + "/config.json", 'w') as f:
                 f.write(json.dumps(DEFAULT_CONFIG, sort_keys=True, indent=4))
+            CONFIG[self.NETWORK] = json.loads(open(self.GetSavePath() + "/config.json").read())
+
         self.hosts = {}
         if not os.path.exists(self.GetSavePath() + "/hosts.json"):
             with open(self.GetSavePath() + "/hosts.json", 'w') as f:
                 f.write(json.dumps(self.hosts))
         else:
             self.hosts = json.loads(open(self.GetSavePath() + "/hosts.json", 'r').read())
+
         self.channels = {}
         if not os.path.exists(self.GetSavePath() + "/chans.json"):
             with open(self.GetSavePath() + "/chans.json", 'w') as f:
@@ -157,17 +163,19 @@ class Aka(znc.Module):
                     self.cmd_trace_host(user.GetHost())
                 TIMEOUTS[user.GetNick()] = datetime.datetime.now()
 
-    def OnNick(self, user, new_nick, channel):
+    def OnNick(self, user, new_nick, channels):
         self.process(user.GetHost(), new_nick)
-        self.process_chan(user.GetHost(), user.GetNick(), channel.GetName())
+        for chan in channels:
+            self.process_chan(user.GetHost(), user.GetNick(), chan.GetName())
 
     def OnPart(self, user, channel, message):
         self.process(user.GetHost(), user.GetNick())
         self.process_chan(user.GetHost(), user.GetNick(), channel.GetName())
 
-    def OnQuit(self, user, channel, message):
+    def OnQuit(self, user, message, channels):
         self.process(user.GetHost(), user.GetNick())
-        self.process_chan(user.GetHost(), user.GetNick(), channel.GetName())
+        for chan in channels:
+            self.process_chan(user.GetHost(), user.GetNick(), chan.GetName())
 
     def cmd_trace_sharedchans(self, nicks):
         nick_list = []
@@ -254,6 +262,27 @@ class Aka(znc.Module):
         else:
             self.PutModule("No nicks found for %s" % host)
 
+    def cmd_geoip(self, user):
+        # nick = znc.CNick(user)
+        ipv4 = '(?:[0-9]{1,3}(\.|\-)){3}[0-9]{1,3}'
+        ipv6 = '^((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4}))*::((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4}))*|((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4})){7}$'
+        rdns = '^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$'
+
+        if re.search(ipv6, str(user)) or re.search(ipv4, str(user)) or re.search(rdns, str(user)):
+            if re.search(ipv4, str(user)):
+                ip = re.sub('[^\w.]',".",((re.search(ipv4, str(user))).group(0)))
+            elif re.search(ipv6, str(user)) or re.search(rdns, str(user)):
+                ip = str(user)
+            url = 'http://ip-api.com/json/' + ip + '?fields=country,regionName,city,lat,lon,timezone,mobile,proxy,query,reverse,status'
+            loc = requests.get(url)
+            loc_json = loc.json()
+            if loc_json["status"] != "fail":
+                self.PutModule(user + " is located in " + loc_json["city"] + ", " + loc_json["regionName"] + ", " + loc_json["country"] + " (" + str(loc_json["lat"]) + ", " + str(loc_json["lon"]) + " ) / Timezone: " + loc_json["timezone"] + " / Proxy: " + str(loc_json["proxy"]) + " / Mobile: " + str(loc_json["mobile"]) + " / IP: " + loc_json["query"] + " " + loc_json["reverse"])
+            else:
+                self.PutModule("Unable to geolocate " + user)
+        else:
+            self.PutModule("Invalid host for geolocation (" + user + ")")
+
     def cmd_version(self):
         """
         Pull the version number from line 4 of this script
@@ -325,10 +354,10 @@ class Aka(znc.Module):
 
     def OnModCommand(self, command):
         # Valid Commands
-        cmds = ["trace", "help", "config", "info", "save", "add", "merge", "version", "stats", "update"]
+        cmds = ["trace", "geoip", "help", "config", "info", "save", "add", "merge", "version", "stats", "update"]
         if command.split()[0] in cmds:
             if command.split()[0] == "trace":
-                cmds = ["sharedchans", "intersect", "hostchans", "nickchans", "nick", "host"]
+                cmds = ["sharedchans", "intersect", "hostchans", "nickchans", "nick", "host", "geoip"]
                 if command.split()[1] in cmds:
                     if command.split()[1] == "sharedchans":
                         self.cmd_trace_sharedchans(list(command.split()[2:]))
@@ -344,6 +373,8 @@ class Aka(znc.Module):
                         self.cmd_trace_host(command.split()[2])
                 else:
                     self.PutModule("%s is not a valid command." % command)
+            elif command.split()[0] == "geoip":
+                self.cmd_geoip(command.split()[1])
             elif command.split()[0] == "info":
                 self.cmd_info()
             elif command.split()[0] == "save":
@@ -462,8 +493,8 @@ class Aka(znc.Module):
         new_version = urllib.request.urlopen("https://raw.githubusercontent.com/AwwCookies/ZNC-Modules/master/Aka/Aka.py")
         with open(self.GetModPath(), 'w') as f:
             f.write(new_version.read().decode('utf-8'))
-        # self.ReloadModule()
-        self.PutModule("Aka successfully updated. Please reload Aka on all networks")
+        self.PutModule("Aka successfully updated.")
+        znc.CModule().ReloadModule(self,None,self.GetUser(),self.GetNetwork(),True)
 
     def cmd_help(self):
         self.PutModule("+====================+===========================================+======================================================+")
@@ -477,7 +508,7 @@ class Aka(znc.Module):
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| trace nickchans    | <nick>                                    | Get all channels a nick has been seen in")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| trace hostchans    | <host>                                    | Get all channels a host has been seen in")
+        self.PutModule("| geoip              | <host>                                    | Geolocates host")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| add                | <nick> <host>                             | Manually add a nick/host entry to the database")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
