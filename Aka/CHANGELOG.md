@@ -94,3 +94,4 @@
   * Fixed reload on `update`
   * `update` limited to administrators
   * `geoip <nick>` added
+  * Bug fixes
