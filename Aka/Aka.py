@@ -127,7 +127,7 @@ class Aka(znc.Module):
         global get_raw_geoip_host
         if get_raw_geoip_host:
             get_raw_geoip_host = False
-            self.geoip_process(str(message.s).split()[5])
+            self.geoip_process(str(message.s).split()[5], str(message.s).split()[7])
         if str(message.s).split()[1] == "352": # on WHO
             host = str(message.s).split()[5]
             nick = str(message.s).split()[7]
@@ -270,12 +270,12 @@ class Aka(znc.Module):
     def cmd_geoip(self, method, user):
         global get_raw_geoip_host
         if method == "host":
-            self.geoip_process(user)
+            self.geoip_process(user, user)
         elif method == "nick":
             get_raw_geoip_host = True
             self.PutIRC("WHO " + user)
 
-    def geoip_process(self, user):
+    def geoip_process(self, user, name):
         ipv4 = '(?:[0-9]{1,3}(\.|\-)){3}[0-9]{1,3}'
         ipv6 = '^((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4}))*::((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4}))*|((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4})){7}$'
         rdns = '^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$'
@@ -289,7 +289,7 @@ class Aka(znc.Module):
             loc = requests.get(url)
             loc_json = loc.json()
             if loc_json["status"] != "fail":
-                self.PutModule(user + " is located in " + loc_json["city"] + ", " + loc_json["regionName"] + ", " + loc_json["country"] + " (" + str(loc_json["lat"]) + ", " + str(loc_json["lon"]) + " ) / Timezone: " + loc_json["timezone"] + " / Proxy: " + str(loc_json["proxy"]) + " / Mobile: " + str(loc_json["mobile"]) + " / IP: " + loc_json["query"] + " " + loc_json["reverse"])
+                self.PutModule(name + " is located in " + loc_json["city"] + ", " + loc_json["regionName"] + ", " + loc_json["country"] + " (" + str(loc_json["lat"]) + ", " + str(loc_json["lon"]) + " ) / Timezone: " + loc_json["timezone"] + " / Proxy: " + str(loc_json["proxy"]) + " / Mobile: " + str(loc_json["mobile"]) + " / IP: " + loc_json["query"] + " " + loc_json["reverse"])
             else:
                 self.PutModule("Unable to geolocate " + user)
         elif user == "of":
