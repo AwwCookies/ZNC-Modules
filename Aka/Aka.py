@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                     #
-#   Last Update: Oct 16th 2015                                        #
+#   Last Update: Oct 17th 2015                                        #
 #   Version: 1.5.3                                               # # #
 #   Desc: A ZNC Module to track nicks                             # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -282,13 +282,13 @@ class Aka(znc.Module):
                 ip = re.sub('[^\w.]',".",((re.search(ipv4, str(user))).group(0)))
             elif re.search(ipv6, str(user)) or re.search(rdns, str(user)):
                 ip = str(user)
-            url = 'http://ip-api.com/json/' + ip + '?fields=country,regionName,city,lat,lon,timezone,mobile,proxy,query,reverse,status'
+            url = 'http://ip-api.com/json/' + ip + '?fields=country,regionName,city,lat,lon,timezone,mobile,proxy,query,reverse,status,message'
             loc = requests.get(url)
             loc_json = loc.json()
             if loc_json["status"] != "fail":
                 self.PutModule(name + " is located in " + loc_json["city"] + ", " + loc_json["regionName"] + ", " + loc_json["country"] + " (" + str(loc_json["lat"]) + ", " + str(loc_json["lon"]) + " ) / Timezone: " + loc_json["timezone"] + " / Proxy: " + str(loc_json["proxy"]) + " / Mobile: " + str(loc_json["mobile"]) + " / IP: " + loc_json["query"] + " " + loc_json["reverse"])
             else:
-                self.PutModule("Unable to geolocate " + user)
+                self.PutModule("Unable to geolocate " + user + ". (Reason: " + loc_json["message"] + ")")
         elif user == "of":
             self.PutModule("User does not exist.")
         else:
@@ -511,6 +511,7 @@ class Aka(znc.Module):
 
     def update(self):
         if self.GetUser().IsAdmin():
+            self.save()
             new_version = urllib.request.urlopen("https://raw.githubusercontent.com/AwwCookies/ZNC-Modules/master/Aka/Aka.py")
             with open(self.GetModPath(), 'w') as f:
                 f.write(new_version.read().decode('utf-8'))
@@ -541,7 +542,9 @@ class Aka(znc.Module):
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| merge chans        | <url>                                     | Merges the chans files from two users")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| config             | <variable> <value>                        | Set configururation variables per network (See README)")
+        self.PutModule("| config             | <variable> <value>                        | Set configuration variables per network (See README)")
+        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| getconfig          |                                           | Print the current network configuration")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| save               |                                           | Manually save the latest tracks to disk")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")

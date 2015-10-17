@@ -45,6 +45,8 @@ Aka must be loaded on each network you wish to use it on
 
 `version` Get current module version
 
+`getconfig` Print current network configuration
+
 `config <variable> <value>` Set configuration variables
 
 `stats` Print nick and host stats for the network
