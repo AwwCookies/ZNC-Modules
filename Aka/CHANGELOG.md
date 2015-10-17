@@ -95,3 +95,4 @@
   * `update` limited to administrators
   * `geoip <nick>` added
   * Bug fixes
+  * `getconfig` to print the current settings for the network

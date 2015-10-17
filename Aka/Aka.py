@@ -307,6 +307,9 @@ class Aka(znc.Module):
     def cmd_config(self, var_name, value):
         self.change_config(var_name, value)
 
+    def cmd_getconfig(self):
+        self.PutModule(str(self.CONFIG))
+
     def cmd_add(self, nick, host):
         self.process(host, nick)
         self.PutModule("%s => %s" % (nick, host))
@@ -365,7 +368,7 @@ class Aka(znc.Module):
 
     def OnModCommand(self, command):
         # Valid Commands
-        cmds = ["trace", "geoip", "help", "config", "info", "save", "add", "merge", "version", "stats", "update"]
+        cmds = ["trace", "geoip", "help", "config", "getconfig", "info", "save", "add", "merge", "version", "stats", "update"]
         if command.split()[0] in cmds:
             if command.split()[0] == "trace":
                 cmds = ["sharedchans", "intersect", "hostchans", "nickchans", "nick", "host", "geoip"]
@@ -396,6 +399,8 @@ class Aka(znc.Module):
                 self.cmd_save()
             elif command.split()[0] == "config":
                 self.cmd_config(command.split()[1], command.split()[2])
+            elif command.split()[0] == "getconfig":
+                self.cmd_getconfig()
             elif command.split()[0] == "add":
                 self.cmd_add(command.split()[1], command.split()[2])
             elif command.split()[0] == "help":
