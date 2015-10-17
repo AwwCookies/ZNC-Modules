@@ -27,6 +27,8 @@ Aka must be loaded on each network you wish to use it on
 
 `geoip <host>` Geolocates the given host
 
+`geoip <nick` Geolocates a user by nick
+
 ## Modify Data Commands
 
 `add <nick> <host>` Manually add a nick/host entry to the database

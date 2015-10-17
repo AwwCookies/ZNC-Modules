@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                     #
 #   Last Update: Oct 16th 2015                                        #
-#   Version: 1.5.2                                               # # #
+#   Version: 1.5.3                                               # # #
 #   Desc: A ZNC Module to track nicks                             # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -33,6 +33,7 @@ class SaveTimer(znc.Timer):
 class Aka(znc.Module):
     description = "Tracks nicks and hosts, allowing tracing and history viewing"
     wiki_page = "Aka"
+
     def OnLoad(self, args, message):
 
         self.USER = self.GetUser().GetUserName()
@@ -123,6 +124,10 @@ class Aka(znc.Module):
                 self.channels[channel].append((nick, host))
 
     def OnRaw(self, message):
+        global get_raw_geoip_host
+        if get_raw_geoip_host:
+            get_raw_geoip_host = False
+            self.geoip_process(str(message.s).split()[5])
         if str(message.s).split()[1] == "352": # on WHO
             host = str(message.s).split()[5]
             nick = str(message.s).split()[7]
@@ -262,13 +267,20 @@ class Aka(znc.Module):
         else:
             self.PutModule("No nicks found for %s" % host)
 
-    def cmd_geoip(self, user):
-        # nick = znc.CNick(user)
+    def cmd_geoip(self, method, user):
+        global get_raw_geoip_host
+        if method == "host":
+            self.geoip_process(user)
+        elif method == "nick":
+            get_raw_geoip_host = True
+            self.PutIRC("WHO " + user)
+
+    def geoip_process(self, user):
         ipv4 = '(?:[0-9]{1,3}(\.|\-)){3}[0-9]{1,3}'
         ipv6 = '^((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4}))*::((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4}))*|((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4})){7}$'
         rdns = '^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$'
 
-        if re.search(ipv6, str(user)) or re.search(ipv4, str(user)) or re.search(rdns, str(user)):
+        if (re.search(ipv6, str(user)) or re.search(ipv4, str(user)) or re.search(rdns, str(user))) and user != "of":
             if re.search(ipv4, str(user)):
                 ip = re.sub('[^\w.]',".",((re.search(ipv4, str(user))).group(0)))
             elif re.search(ipv6, str(user)) or re.search(rdns, str(user)):
@@ -280,6 +292,8 @@ class Aka(znc.Module):
                 self.PutModule(user + " is located in " + loc_json["city"] + ", " + loc_json["regionName"] + ", " + loc_json["country"] + " (" + str(loc_json["lat"]) + ", " + str(loc_json["lon"]) + " ) / Timezone: " + loc_json["timezone"] + " / Proxy: " + str(loc_json["proxy"]) + " / Mobile: " + str(loc_json["mobile"]) + " / IP: " + loc_json["query"] + " " + loc_json["reverse"])
             else:
                 self.PutModule("Unable to geolocate " + user)
+        elif user == "of":
+            self.PutModule("User does not exist.")
         else:
             self.PutModule("Invalid host for geolocation (" + user + ")")
 
@@ -374,7 +388,11 @@ class Aka(znc.Module):
                 else:
                     self.PutModule("%s is not a valid command." % command)
             elif command.split()[0] == "geoip":
-                self.cmd_geoip(command.split()[1])
+                cmds = ["host", "nick"]
+                if command.split()[1] in cmds:
+                    self.cmd_geoip(command.split()[1], command.split()[2])
+                else:
+                    self.PutModule(command.split()[0] + " " + command.split()[1] + " is not a valid command.")
             elif command.split()[0] == "info":
                 self.cmd_info()
             elif command.split()[0] == "save":
@@ -490,11 +508,14 @@ class Aka(znc.Module):
         self.save()
 
     def update(self):
-        new_version = urllib.request.urlopen("https://raw.githubusercontent.com/AwwCookies/ZNC-Modules/master/Aka/Aka.py")
-        with open(self.GetModPath(), 'w') as f:
-            f.write(new_version.read().decode('utf-8'))
-        self.PutModule("Aka successfully updated.")
-        znc.CModule().ReloadModule(self,None,self.GetUser(),self.GetNetwork(),True)
+        if self.GetUser().IsAdmin():
+            new_version = urllib.request.urlopen("https://raw.githubusercontent.com/AwwCookies/ZNC-Modules/master/Aka/Aka.py")
+            with open(self.GetModPath(), 'w') as f:
+                f.write(new_version.read().decode('utf-8'))
+                self.PutModule("Aka successfully updated.")
+                znc.CModule().UpdateModule('Aka')
+        else:
+            self.PutModule("You must be an administrator to update this module.")
 
     def cmd_help(self):
         self.PutModule("+====================+===========================================+======================================================+")
@@ -508,7 +529,9 @@ class Aka(znc.Module):
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| trace nickchans    | <nick>                                    | Get all channels a nick has been seen in")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| geoip              | <host>                                    | Geolocates host")
+        self.PutModule("| geoip host         | <host>                                    | Geolocates host")
+        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| geoip nick         | <nick>                                    | Geolocates host by nick")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| add                | <nick> <host>                             | Manually add a nick/host entry to the database")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")

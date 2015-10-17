@@ -70,22 +70,27 @@
   * Added wiki page to module
 
 ### Version 1.4.0
-  * Added option to automatically run 'trace nick' for users on channel join
+  * Added option to automatically run `trace nick` for users on channel join
   * New variable to set limit on notification frequency for a given nick
   * Adds new config variables to file
   * Fixed config variable bug
 
 ### Version 1.4.1
-  * Clarified `trace` commands in help
+  * Clarified `trace` commands in `help`
 
 ### Version 1.5.0
   * New 'update' command to auto-update from master
 
 ### Version 1.5.1
   * Relocated save files to proper location
-  * Added on join trace for new users
+  * Added on join `trace` for new users
 
 ### Version 1.5.2
-  * Added `geoip` command
-  * Module reloads after update
+  * Added `geoip <host>` command
+  * Module reloads after `update`
   * Fixed OnNick and OnQuit bug *(Credit: @KindOne-)*
+
+### Version 1.5.3
+  * Fixed reload on `update`
+  * `update` limited to administrators
+  * `geoip <nick>` added
