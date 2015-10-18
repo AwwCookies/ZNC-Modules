@@ -101,7 +101,7 @@ class Aka(znc.Module):
         # If there was no problems setting up then load the script
         return True
 
-    def process(self, host, nick):
+    def process_user(self, host, nick):
         if self.CONFIG.get("DEBUG_MODE", False):
             self.PutModule("DEBUG: Adding %s => %s" % (nick, host))
         if host not in self.hosts:
@@ -129,16 +129,16 @@ class Aka(znc.Module):
             host = str(message.s).split()[5]
             nick = str(message.s).split()[7]
             channel = str(message.s).split()[3]
-            self.process(host, nick)
+            self.process_user(host, nick)
             self.process_chan(host, nick, channel)
         elif str(message.s).split()[1] == "311": # on WHOIS
             host = str(message.s).split()[5]
             nick = str(message.s).split()[3]
-            self.process(host, nick)
+            self.process_user(host, nick)
         elif str(message.s).split()[1] == "314": # on WHOWAS
             host = str(message.s).split()[5]
             nick = str(message.s).split()[3]
-            self.process(host, nick)
+            self.process_user(host, nick)
 
     def OnJoin(self, user, channel):
         ''' TO ADD
@@ -146,7 +146,7 @@ class Aka(znc.Module):
         self.PutUser(":*Aka!Aka@znc.in PRIVMSG *Aka :" + str(user.GetNick()) + " has joined WAPA")
         '''
 
-        self.process(user.GetHost(), user.GetNick())
+        self.process_user(user.GetHost(), user.GetNick())
         self.process_chan(user.GetHost(), user.GetNick(), channel.GetName())
         if self.CONFIG.get("NOTIFY_ON_JOIN", True) and user.GetNick() != self.GetUser().GetNick():
             if user.GetNick() in self.TIMEOUTS:
@@ -167,16 +167,16 @@ class Aka(znc.Module):
                 self.TIMEOUTS[user.GetNick()] = datetime.datetime.now()
 
     def OnNick(self, user, new_nick, channels):
-        self.process(user.GetHost(), new_nick)
+        self.process_user(user.GetHost(), new_nick)
         for chan in channels:
             self.process_chan(user.GetHost(), user.GetNick(), chan.GetName())
 
     def OnPart(self, user, channel, message):
-        self.process(user.GetHost(), user.GetNick())
+        self.process_user(user.GetHost(), user.GetNick())
         self.process_chan(user.GetHost(), user.GetNick(), channel.GetName())
 
     def OnQuit(self, user, message, channels):
-        self.process(user.GetHost(), user.GetNick())
+        self.process_user(user.GetHost(), user.GetNick())
         for chan in channels:
             self.process_chan(user.GetHost(), user.GetNick(), chan.GetName())
 
@@ -272,27 +272,27 @@ class Aka(znc.Module):
             self.get_raw_geoip_host = True
             self.PutIRC("WHO " + user)
 
-    def geoip_process(self, user, name):
+    def geoip_process(self, host, nick):
         ipv4 = '(?:[0-9]{1,3}(\.|\-)){3}[0-9]{1,3}'
         ipv6 = '^((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4}))*::((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4}))*|((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4})){7}$'
         rdns = '^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$'
 
-        if (re.search(ipv6, str(user)) or re.search(ipv4, str(user)) or re.search(rdns, str(user))) and user != "of":
-            if re.search(ipv4, str(user)):
-                ip = re.sub('[^\w.]',".",((re.search(ipv4, str(user))).group(0)))
-            elif re.search(ipv6, str(user)) or re.search(rdns, str(user)):
-                ip = str(user)
+        if (re.search(ipv6, str(host)) or re.search(ipv4, str(host)) or re.search(rdns, str(host))) and host != "of":
+            if re.search(ipv4, str(host)):
+                ip = re.sub('[^\w.]',".",((re.search(ipv4, str(host))).group(0)))
+            elif re.search(ipv6, str(host)) or re.search(rdns, str(host)):
+                ip = str(host)
             url = 'http://ip-api.com/json/' + ip + '?fields=country,regionName,city,lat,lon,timezone,mobile,proxy,query,reverse,status,message'
             loc = requests.get(url)
             loc_json = loc.json()
             if loc_json["status"] != "fail":
-                self.PutModule(name + " is located in " + loc_json["city"] + ", " + loc_json["regionName"] + ", " + loc_json["country"] + " (" + str(loc_json["lat"]) + ", " + str(loc_json["lon"]) + " ) / Timezone: " + loc_json["timezone"] + " / Proxy: " + str(loc_json["proxy"]) + " / Mobile: " + str(loc_json["mobile"]) + " / IP: " + loc_json["query"] + " " + loc_json["reverse"])
+                self.PutModule(nick + " is located in " + loc_json["city"] + ", " + loc_json["regionName"] + ", " + loc_json["country"] + " (" + str(loc_json["lat"]) + ", " + str(loc_json["lon"]) + ") / Timezone: " + loc_json["timezone"] + " / Proxy: " + str(loc_json["proxy"]) + " / Mobile: " + str(loc_json["mobile"]) + " / IP: " + loc_json["query"] + " " + loc_json["reverse"])
             else:
-                self.PutModule("Unable to geolocate " + user + ". (Reason: " + loc_json["message"] + ")")
-        elif user == "of":
+                self.PutModule("Unable to geolocate " + host + ". (Reason: " + loc_json["message"] + ")")
+        elif host == "of":
             self.PutModule("User does not exist.")
         else:
-            self.PutModule("Invalid host for geolocation (" + user + ")")
+            self.PutModule("Invalid host for geolocation (" + host + ")")
 
     def cmd_version(self):
         """
@@ -311,7 +311,7 @@ class Aka(znc.Module):
         self.PutModule(str(self.CONFIG))
 
     def cmd_add(self, nick, host):
-        self.process(host, nick)
+        self.process_user(host, nick)
         self.PutModule("%s => %s" % (nick, host))
 
     def cmd_merge_hosts(self, URL):
