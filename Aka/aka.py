@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                     #
-#   Last Update: Oct 17th 2015                                        #
+#   Last Update: Oct 19th 2015                                        #
 #   Version: 1.6.0                                               # # #
 #   Desc: A ZNC Module to track nicks                             # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -19,8 +19,6 @@ import json
 import requests
 
 ''' NO RESULTS OUTPUT '''
-''' REMOVE OLD VARIABLES '''
-''' ADD SEEN '''
 
 DEFAULT_CONFIG = {
     "DEBUG_MODE": False, # 0/1
@@ -525,7 +523,9 @@ class aka(znc.Module):
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| trace nickchans    | <nick>                                    | Get all channels a nick has been seen in")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| seen               | <nick>                                    | Last time and where the nick was seen")
+        self.PutModule("| seen nick          | <nick>                                    | Last time and where the nick was seen")
+        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| seen in            | <channel> <nick>                          | Last time and where the nick was seen")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| geoip host         | <host>                                    | Geolocates host")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
