@@ -48,11 +48,11 @@ class aka(znc.Module):
         return True
 
     ''' OK '''
-    def process_new(self, host, nick, channel, message, auto):
+    def process_user(self, host, nick, channel, message, auto):
         if self.CONFIG.get("DEBUG_MODE", False):
             self.PutModule("DEBUG: Adding %s => %s" % (nick, host))
 
-        query = "SELECT seen FROM users WHERE LOWER(nick) = '" + nick.lower() + "' AND LOWER(host) = '" + host.lower() + "'  AND LOWER(channel) = '" + channel.lower() + "'"
+        query = "SELECT * FROM users WHERE LOWER(nick) = '" + nick.lower() + "' AND LOWER(host) = '" + host.lower() + "'  AND LOWER(channel) = '" + channel.lower() + "'"
 
         self.c.execute(query)
         data = self.c.fetchall()
@@ -78,20 +78,20 @@ class aka(znc.Module):
             host = str(message.s).split()[5]
             nick = str(message.s).split()[7]
             channel = str(message.s).split()[3]
-            self.process_new(host, nick, channel, True)
+            self.process_user(host, nick, channel, True)
         elif str(message.s).split()[1] == "311": # on WHOIS
             host = str(message.s).split()[5]
             nick = str(message.s).split()[3]
             channel = str(message.s).split()[6]
-            self.process_new(host, nick, channel, True)
+            self.process_user(host, nick, channel, True)
         elif str(message.s).split()[1] == "314": # on WHOWAS
             host = str(message.s).split()[5]
             nick = str(message.s).split()[3]
-            self.process_new(host, nick, channel, True)
+            self.process_user(host, nick, channel, True)
 
     ''' OK '''
     def OnJoin(self, user, channel):
-        self.process_new(user.GetHost(), user.GetNick(), channel.GetName(), True)
+        self.process_user(user.GetHost(), user.GetNick(), channel.GetName(), True)
 
         if self.CONFIG.get("NOTIFY_ON_JOIN", True) and user.GetNick() != self.GetUser().GetNick():
             if user.GetNick() in self.TIMEOUTS:
@@ -114,20 +114,20 @@ class aka(znc.Module):
     ''' OK '''
     def OnNick(self, user, new_nick, channels):
         for chan in channels:
-            self.process_new(user.GetHost(), new_nick, chan.GetName(), None, True)
+            self.process_user(user.GetHost(), new_nick, chan.GetName(), None, True)
 
     ''' OK '''
     def OnChanMsg(self, user, channel, message):
-        self.process_new(user.GetHost(), user.GetNick(), channel.GetName(), message, False)
+        self.process_user(user.GetHost(), user.GetNick(), channel.GetName(), message, False)
 
     ''' OK '''
     def OnPart(self, user, channel, message):
-        self.process_new(user.GetHost(), user.GetNick(), channel.GetName(), None, True)
+        self.process_user(user.GetHost(), user.GetNick(), channel.GetName(), None, True)
 
     ''' OK '''
     def OnQuit(self, user, message, channels):
         for chan in channels:
-            self.process_new(user.GetHost(), user.GetNick(), chan.GetName(), None, True)
+            self.process_user(user.GetHost(), user.GetNick(), chan.GetName(), None, True)
 
     ''' OK '''
     def OnMode(self, op, channel, mode, arg, added, nochange):
@@ -302,7 +302,7 @@ class aka(znc.Module):
 
     ''' OK '''
     def cmd_add(self, nick, host, channel):
-        self.process_new(host, nick, channel, False)
+        self.process_user(host, nick, channel, False)
         self.PutModule("%s => %s" % (nick, host, channel))
 
     ''' FIX '''
