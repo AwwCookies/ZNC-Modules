@@ -30,10 +30,10 @@ class SaveTimer(znc.Timer):
     def RunJob(self):
         self.GetModule().save()
 
-class aka(znc.Module):
+class Aka(znc.Module):
     module_types = [znc.CModInfo.NetworkModule]
     description = "Tracks nicks and hosts, allowing tracing and history viewing"
-    wiki_page = "aka"
+    wiki_page = "Aka"
 
     def OnLoad(self, args, message):
 
@@ -143,7 +143,7 @@ class aka(znc.Module):
     def OnJoin(self, user, channel):
         ''' TO ADD
         Place in channel instead of PM
-        self.PutUser(":*aka!aka@znc.in PRIVMSG *aka :" + str(user.GetNick()) + " has joined WAPA")
+        self.PutUser(":*Aka!Aka@znc.in PRIVMSG *Aka :" + str(user.GetNick()) + " has joined WAPA")
         '''
 
         self.process_user(user.GetHost(), user.GetNick())
@@ -357,7 +357,7 @@ class aka(znc.Module):
         self.save()
 
     def cmd_info(self):
-        self.PutModule("aka nick tracking module by AwwCookies (Aww) and MuffinMedic (Evan) - http://wiki.znc.in/aka")
+        self.PutModule("Aka nick tracking module by AwwCookies (Aww) and MuffinMedic (Evan) - http://wiki.znc.in/Aka")
 
     def cmd_stats(self):
         nicks = 0
@@ -515,8 +515,8 @@ class aka(znc.Module):
             new_version = urllib.request.urlopen("https://raw.githubusercontent.com/AwwCookies/ZNC-Modules/master/Aka/aka.py")
             with open(self.GetModPath(), 'w') as f:
                 f.write(new_version.read().decode('utf-8'))
-                self.PutModule("aka successfully updated.")
-                znc.CModule().UpdateModule('aka')
+                self.PutModule("Aka successfully updated.")
+                znc.CModule().UpdateModule('Aka')
         else:
             self.PutModule("You must be an administrator to update this module.")
 
@@ -550,7 +550,7 @@ class aka(znc.Module):
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| stats              |                                           | Print nick and host stats for the network")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| update             |                                           | Updates aka to latest version")
+        self.PutModule("| update             |                                           | Updates Aka to latest version")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| help               |                                           | Print help from the module")
         self.PutModule("+====================+===========================================+======================================================+")
