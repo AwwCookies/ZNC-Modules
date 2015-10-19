@@ -3,6 +3,7 @@
  * <a href="https://www.python.org">Python 3</a>
  * <a href="http://wiki.znc.in/Modpython">modpython</a>
  * <a href="http://docs.python-requests.org/en/latest/">python3-requests</a>
+ * <a href="https://www.sqlite.org">sqlite3</a>
 
 ## Installation
 To install Aka, place Aka.py in your ZNC modules folder
