@@ -43,19 +43,12 @@ class aka(znc.Module):
         self.USER = self.GetUser().GetUserName()
         self.NETWORK = self.GetNetwork().GetName()
 
-        self.conn = sqlite3.connect(self.GetSavePath() + "/aka." + self.NETWORK + ".db")
-        self.c = self.conn.cursor()
-        self.c.execute("create table if not exists users (host, nick, channel, seen, UNIQUE(host COLLATE NOCASE, nick COLLATE NOCASE, channel COLLATE NOCASE))")
-
-        ''' Copy old data files to new ones '''
-        self.old_MODFOLDER = znc.CUser(self.USER).GetUserPath() + "/moddata/Aka/"
-
         self.transfer_data()
 
         return True
 
     ''' OK '''
-    def process_new(self, host, nick, channel, auto):
+    def process_new(self, host, nick, channel, message, auto):
         if self.CONFIG.get("DEBUG_MODE", False):
             self.PutModule("DEBUG: Adding %s => %s" % (nick, host))
 
@@ -67,12 +60,12 @@ class aka(znc.Module):
             if auto == True:
                 query = "INSERT INTO users (host, nick, channel) VALUES ('" + host + "','" + nick + "','" + channel + "')"
             else:
-                query = "INSERT INTO users VALUES ('" + host + "','" + nick + "','" + channel + "','" + str(datetime.datetime.now()) + "')"
+                query = "INSERT INTO users VALUES ('" + host + "','" + nick + "','" + channel + "','" + str(datetime.datetime.now()) + "','" + str(message) + "')"
             self.c.execute(query)
 
         else:
             if auto == False:
-                query = "UPDATE users SET seen = '" + str(datetime.datetime.now()) + "' WHERE LOWER(nick) = '" + nick.lower() + "' AND LOWER(host) = '" + host.lower() + "'  AND LOWER(channel) = '" + channel.lower() + "'"
+                query = "UPDATE users SET seen = '" + str(datetime.datetime.now()) + "', message = '" + str(message) + "' WHERE LOWER(nick) = '" + nick.lower() + "' AND LOWER(host) = '" + host.lower() + "'  AND LOWER(channel) = '" + channel.lower() + "'"
             self.c.execute(query)
         self.conn.commit()
 
@@ -121,20 +114,20 @@ class aka(znc.Module):
     ''' OK '''
     def OnNick(self, user, new_nick, channels):
         for chan in channels:
-            self.process_new(user.GetHost(), new_nick, chan.GetName(), True)
+            self.process_new(user.GetHost(), new_nick, chan.GetName(), None, True)
 
     ''' OK '''
     def OnChanMsg(self, user, channel, message):
-        self.process_new(user.GetHost(), user.GetNick(), channel.GetName(), False)
+        self.process_new(user.GetHost(), user.GetNick(), channel.GetName(), message, False)
 
     ''' OK '''
     def OnPart(self, user, channel, message):
-        self.process_new(user.GetHost(), user.GetNick(), channel.GetName(), True)
+        self.process_new(user.GetHost(), user.GetNick(), channel.GetName(), None, True)
 
     ''' OK '''
     def OnQuit(self, user, message, channels):
         for chan in channels:
-            self.process_new(user.GetHost(), user.GetNick(), chan.GetName(), True)
+            self.process_new(user.GetHost(), user.GetNick(), chan.GetName(), None, True)
 
     ''' OK '''
     def OnMode(self, op, channel, mode, arg, added, nochange):
@@ -258,15 +251,15 @@ class aka(znc.Module):
     ''' OK '''
     def cmd_seen(self, mode, channel, nick):
         if mode == "in":
-            query = "SELECT seen FROM users WHERE LOWER(nick) = '" + str(nick).lower() + "' AND LOWER(channel) = '" + str(channel).lower() + "'"
+            query = "SELECT seen, message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(nick) = '" + str(nick).lower() + "' AND LOWER(channel) = '" + str(channel).lower() + "') AND LOWER(nick) = '" + str(nick).lower() + "' AND LOWER(channel) = '" + str(channel).lower() + "'"
             self.c.execute(query)
             for row in self.c:
-                self.PutModule(str(nick) + " was last seen in " + str(channel) + " at " + str(row[0]))
+                self.PutModule(str(nick) + " was last seen in " + str(channel) + " at " + str(row[0]) + " saying \"" + str(row[1]) + "\"")
         elif mode == "nick":
-            query = "SELECT channel, MAX(seen) FROM users WHERE LOWER(nick) = '" + str(nick).lower() + "'"
+            query = "SELECT channel, MAX(seen), message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(nick) = '" + str(nick).lower() + "') AND LOWER(nick) = '" + str(nick).lower() + "'"
             self.c.execute(query)
             for row in self.c:
-                self.PutModule(str(nick) + " was last seen in " + str(row[0]) + " at " + str(row[1]))
+                self.PutModule(str(nick) + " was last seen in " + str(row[0]) + " at " + str(row[1]) + " saying \"" + str(row[2]) + "\"")
 
     ''' OK '''
     def cmd_geoip(self, method, user):
@@ -508,8 +501,30 @@ class aka(znc.Module):
         else:
             self.PutModule("You must be an administrator to update this module.")
 
+    def db_setup(self):
+        self.conn = sqlite3.connect(self.GetSavePath() + "/aka." + self.NETWORK + ".db")
+        self.c = self.conn.cursor()
+        self.c.execute("create table if not exists users (host, nick, channel, seen, UNIQUE(host COLLATE NOCASE, nick COLLATE NOCASE, channel COLLATE NOCASE))")
+
+        ''' ADDITIONAL TABLES '''
+        self.c.execute("PRAGMA table_info(users)")
+        exists = False
+        for table in self.c:
+            if str(table[1]) == 'message':
+                exists = True
+        if exists == False:
+            self.c.execute("ALTER TABLE users ADD COLUMN message")
+
+
     ''' OK '''
     def transfer_data(self):
+
+        if os.path.exists(znc.CUser(self.USER).GetUserPath() + "/networks/" + self.NETWORK + "/moddata/Aka"):
+            os.rename(znc.CUser(self.USER).GetUserPath() + "/networks/" + self.NETWORK + "/moddata/Aka", self.GetSavePath())
+
+        self.db_setup()
+
+        self.old_MODFOLDER = znc.CUser(self.USER).GetUserPath() + "/moddata/Aka/"
 
         if os.path.exists(self.old_MODFOLDER + "config.json") and not os.path.exists(self.GetSavePath() + "/hosts.json"):
             shutil.move(self.old_MODFOLDER + "config.json", self.GetSavePath() + "/config.json")

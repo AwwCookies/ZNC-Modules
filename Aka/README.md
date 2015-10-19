@@ -6,7 +6,7 @@
  * <a href="https://www.sqlite.org">sqlite3</a>
 
 ## Installation
-To install Aka, place Aka.py in your ZNC modules folder
+To install aka, place aka.py in your ZNC modules folder
 
 ## Loading
 Aka must be loaded on each network you wish to use it on
