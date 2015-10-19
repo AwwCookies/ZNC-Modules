@@ -64,4 +64,5 @@ Aka must be loaded on each network you wish to use it on
  * **DEBUG_MODE** *(0/1)* Display raw output
  * **NOTIFY_ON_JOIN** *(0/1)* Automatically run `trace nick` when a user joins a channel
  * **NOTIFY_ON_JOIN_TIMEOUT** *(int: seconds)* How long to wait before sending notification again for same user
- * **NOTIFY_DEFAULT_MODE** *(nick/host)*
+ * **NOTIFY_DEFAULT_MODE** *(nick/host)* Whether to use nick or host for on join trace
+ * **NOTIFY_ON_MODE** *(0/1)* Automatically be notified when channel modes are changed

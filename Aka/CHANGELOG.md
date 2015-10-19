@@ -1,5 +1,8 @@
 # Changelog
 
+### Version 1.6.1
+  * New option to be notified of channel mode changes
+
 ### Version 1.6.0
   * **Rewritten** to use sqlite instead over json
   * `seen` command added

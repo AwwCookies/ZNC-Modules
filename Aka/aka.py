@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                     #
 #   Last Update: Oct 19th 2015                                        #
-#   Version: 1.6.0                                               # # #
+#   Version: 1.6.1                                               # # #
 #   Desc: A ZNC Module to track nicks                             # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -24,7 +24,8 @@ DEFAULT_CONFIG = {
     "DEBUG_MODE": False, # 0/1
     "NOTIFY_ON_JOIN": False, # 0/1
     "NOTIFY_ON_JOIN_TIMEOUT": 300, # Seconds
-    "NOTIFY_DEFAULT_MODE": "host" # host/nick
+    "NOTIFY_DEFAULT_MODE": "host", # host/nick
+    "NOTIFY_ON_MODE": 0 # 0/1
 }
 
 class aka(znc.Module):
@@ -134,6 +135,50 @@ class aka(znc.Module):
     def OnQuit(self, user, message, channels):
         for chan in channels:
             self.process_new(user.GetHost(), user.GetNick(), chan.GetName(), True)
+
+    ''' OK '''
+    def OnMode(self, op, channel, mode, arg, added, nochange):
+        if self.CONFIG.get("NOTIFY_ON_MODE", True):
+            if mode == 79:
+                mode = 'O'
+            elif mode == 111:
+                mode = 'o'
+            elif mode == 98:
+                mode = 'b'
+            elif mode == 118:
+                mode = 'v'
+            elif mode == 113:
+                mode = 'q'
+            elif mode == 115:
+                mode = 's'
+            elif mode == 112:
+                mode = 'p'
+            elif mode == 107:
+                mode = 'k'
+            elif mode == 97:
+                mode = 'a'
+            elif mode == 109:
+                mode = 'm'
+            elif mode == 110:
+                mode = 'n'
+            elif mode == 108:
+                mode = 'l'
+            elif mode == 101:
+                mode = 'e'
+            elif mode == 105:
+                mode = 'i'
+            elif mode == 114:
+                mode = 'r'
+            elif mode == 73:
+                mode = 'l'
+            elif mode == 116:
+                mode = 't'
+            elif mode == 104:
+                mode = 'h'
+            if added:
+                self.PutModule(str(op) + " has set mode +" + str(mode) + " " + str(arg) + " in " + str(channel))
+            else:
+                self.PutModule(str(op) + " has set mode -" + str(mode) + " " + str(arg) + " in " + str(channel))
 
     ''' OK '''
     def cmd_trace_nick(self, nick):
@@ -437,6 +482,16 @@ class aka(znc.Module):
                         self.PutModule("Notify Mode: HOST")
                 else:
                     self.PutModule("Valid values: nick, host")
+            elif var_name == "NOTIFY_ON_MODE":
+                if int(value) in [0, 1]:
+                    if int(value) == 0:
+                        self.CONFIG["NOTIFY_ON_MODE"] = False
+                        self.PutModule("Notify On Mode: OFF")
+                    elif int(value) == 1:
+                        self.CONFIG["NOTIFY_ON_MODE"] = True
+                        self.PutModule("Notify On Mode: ON")
+                else:
+                    self.PutModule("Valid values: 0, 1")
             else:
                 self.PutModule("%s is not a valid var." % var_name)
         with open(self.GetSavePath() + "/config.json", 'w') as f:
