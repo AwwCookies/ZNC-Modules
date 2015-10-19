@@ -30,7 +30,7 @@ class SaveTimer(znc.Timer):
     def RunJob(self):
         self.GetModule().save()
 
-class Aka(znc.Module):
+class aka(znc.Module):
     module_types = [znc.CModInfo.NetworkModule]
     description = "Tracks nicks and hosts, allowing tracing and history viewing"
     wiki_page = "Aka"
