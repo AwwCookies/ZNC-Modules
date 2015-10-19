@@ -512,7 +512,7 @@ class aka(znc.Module):
     def update(self):
         if self.GetUser().IsAdmin():
             self.save()
-            new_version = urllib.request.urlopen("https://raw.githubusercontent.com/AwwCookies/ZNC-Modules/master/aka/aka.py")
+            new_version = urllib.request.urlopen("https://raw.githubusercontent.com/AwwCookies/ZNC-Modules/master/Aka/aka.py")
             with open(self.GetModPath(), 'w') as f:
                 f.write(new_version.read().decode('utf-8'))
                 self.PutModule("aka successfully updated.")
