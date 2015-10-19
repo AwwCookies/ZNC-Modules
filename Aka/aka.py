@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                     #
-#   Last Update: Oct 17th 2015                                        #
+#   Last Update: Oct 19th 2015                                        #
 #   Version: 1.5.3                                               # # #
 #   Desc: A ZNC Module to track nicks                             # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -33,7 +33,7 @@ class SaveTimer(znc.Timer):
 class aka(znc.Module):
     module_types = [znc.CModInfo.NetworkModule]
     description = "Tracks nicks and hosts, allowing tracing and history viewing"
-    wiki_page = "Aka"
+    wiki_page = "aka"
 
     def OnLoad(self, args, message):
 
@@ -143,7 +143,7 @@ class aka(znc.Module):
     def OnJoin(self, user, channel):
         ''' TO ADD
         Place in channel instead of PM
-        self.PutUser(":*Aka!Aka@znc.in PRIVMSG *Aka :" + str(user.GetNick()) + " has joined WAPA")
+        self.PutUser(":*aka!aka@znc.in PRIVMSG *aka :" + str(user.GetNick()) + " has joined WAPA")
         '''
 
         self.process_user(user.GetHost(), user.GetNick())
@@ -357,7 +357,7 @@ class aka(znc.Module):
         self.save()
 
     def cmd_info(self):
-        self.PutModule("Aka nick tracking module by AwwCookies (Aww) and MuffinMedic (Evan) - http://wiki.znc.in/Aka")
+        self.PutModule("aka nick tracking module by AwwCookies (Aww) and MuffinMedic (Evan) - http://wiki.znc.in/aka")
 
     def cmd_stats(self):
         nicks = 0
@@ -512,11 +512,11 @@ class aka(znc.Module):
     def update(self):
         if self.GetUser().IsAdmin():
             self.save()
-            new_version = urllib.request.urlopen("https://raw.githubusercontent.com/AwwCookies/ZNC-Modules/master/Aka/Aka.py")
+            new_version = urllib.request.urlopen("https://raw.githubusercontent.com/AwwCookies/ZNC-Modules/master/aka/aka.py")
             with open(self.GetModPath(), 'w') as f:
                 f.write(new_version.read().decode('utf-8'))
-                self.PutModule("Aka successfully updated.")
-                znc.CModule().UpdateModule('Aka')
+                self.PutModule("aka successfully updated.")
+                znc.CModule().UpdateModule('aka')
         else:
             self.PutModule("You must be an administrator to update this module.")
 
@@ -550,7 +550,7 @@ class aka(znc.Module):
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| stats              |                                           | Print nick and host stats for the network")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| update             |                                           | Updates Aka to latest version")
+        self.PutModule("| update             |                                           | Updates aka to latest version")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| help               |                                           | Print help from the module")
         self.PutModule("+====================+===========================================+======================================================+")
