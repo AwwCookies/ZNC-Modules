@@ -84,9 +84,6 @@ class aka(znc.Module):
             host = str(message.s).split()[5]
             nick = str(message.s).split()[7]
             channel = str(message.s).split()[3]
-            self.PutModule("Host " + str(message.s).split()[5])
-            self.PutModule("Nick " + str(message.s).split()[7])
-            self.PutModule("Channel " + str(message.s).split()[3])
             self.process_new(host, nick, channel, True)
         elif str(message.s).split()[1] == "311": # on WHOIS
             host = str(message.s).split()[5]
