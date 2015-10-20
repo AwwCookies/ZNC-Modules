@@ -1,3 +1,14 @@
+## Branches
+
+**Two (2) branches of aka currently exist, both of which are supported:**
+
+ * `master` is the original module, with all basic features and tracking
+ * `sqlite` is a rewrite of the JSON (master) version to use SQL (sqlite) data storage instead. It contains additional features and capabilities.
+
+*Migration of data from `master` to `sqlite` is automatic. Original data files are preserved, although new SQL data migration back to JSON is **not** currently supported.*
+
+Please note that requirements differ slighty. Please read the Requirements section carefully.
+
 ## Requirements
  * <a href="http://znc.in">ZNC</a>
  * <a href="https://www.python.org">Python 3</a>
@@ -63,3 +74,9 @@ Aka must be loaded on each network you wish to use it on
  * **NOTIFY_ON_JOIN** *(0/1)* Automatically run `trace nick` when a user joins a channel
  * **NOTIFY_ON_JOIN_TIMEOUT** *(int: seconds)* How long to wait before sending notification again for same user
  * **NOTIFY_DEFAULT_MODE** *(nick/host)*
+
+## Contact
+
+Issues/bugs should be submitted on the <a href="https://github.com/AwwCookies/ZNC-Modules/issues">GitHub issues page</a>.
+
+For assistance, please e-mail AwwCookies (Aww) at <a href="mailto:aww@smile.sh">aww@smile.sh<a> or PM MuffinMedic (Evan) on <a href="https://kiwiirc.com/client/irc.freenode.net:+6697">freenode<a/> or <a href="https://kiwiirc.com/client/irc.snoonet.org:+6697">Snoonet<a>.
