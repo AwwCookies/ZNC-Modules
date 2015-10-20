@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                     #
 #   Last Update: Oct 19th 2015                                        #
-#   Version: 1.6.1                                               # # #
+#   Version: 1.0.2 SQL                                           # # #
 #   Desc: A ZNC Module to track nicks                             # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -19,13 +19,15 @@ import json
 import requests
 
 ''' NO RESULTS OUTPUT '''
+''' TEST MOD LOG NOTOFY_ON_MODERATED, NOTIFY_ON_MODE, OnKick, OnMode, add `mod` command for nick and host '''
 
 DEFAULT_CONFIG = {
     "DEBUG_MODE": False, # 0/1
     "NOTIFY_ON_JOIN": False, # 0/1
     "NOTIFY_ON_JOIN_TIMEOUT": 300, # Seconds
     "NOTIFY_DEFAULT_MODE": "host", # host/nick
-    "NOTIFY_ON_MODE": 0 # 0/1
+    "NOTIFY_ON_MODE": 0, # 0/1
+    "NOTIFY_ON_MODERATED": 0 # 0/1
 }
 
 class aka(znc.Module):
@@ -52,22 +54,28 @@ class aka(znc.Module):
         if self.CONFIG.get("DEBUG_MODE", False):
             self.PutModule("DEBUG: Adding %s => %s" % (nick, host))
 
-        query = "SELECT * FROM users WHERE LOWER(nick) = '" + nick.lower() + "' AND LOWER(host) = '" + host.lower() + "'  AND LOWER(channel) = '" + channel.lower() + "'"
+        query = "SELECT * FROM users WHERE LOWER(nick) = '" + nick.lower() + "' AND LOWER(host) = '" + host.lower() + "'  AND LOWER(channel) = '" + channel.lower() + "';"
 
         self.c.execute(query)
         data = self.c.fetchall()
         if len(data) == 0:
             if auto == True:
-                query = "INSERT INTO users (host, nick, channel) VALUES ('" + host + "','" + nick + "','" + channel + "')"
+                query = "INSERT INTO users (host, nick, channel) VALUES ('" + host + "','" + nick + "','" + channel + "');"
             else:
-                query = "INSERT INTO users VALUES ('" + host + "','" + nick + "','" + channel + "','" + str(datetime.datetime.now()) + "','" + str(message) + "')"
+                query = "INSERT INTO users VALUES ('" + host + "','" + nick + "','" + channel + "','" + str(datetime.datetime.now()) + "','" + str(message) + "');"
             self.c.execute(query)
-
         else:
             if auto == False:
-                query = "UPDATE users SET seen = '" + str(datetime.datetime.now()) + "', message = '" + str(message) + "' WHERE LOWER(nick) = '" + nick.lower() + "' AND LOWER(host) = '" + host.lower() + "'  AND LOWER(channel) = '" + channel.lower() + "'"
+                query = "UPDATE users SET seen = '" + str(datetime.datetime.now()) + "', message = '" + str(message) + "' WHERE LOWER(nick) = '" + nick.lower() + "' AND LOWER(host) = '" + host.lower() + "' AND LOWER(channel) = '" + channel.lower() + "';"
             self.c.execute(query)
         self.conn.commit()
+
+    ''' OK '''
+    def process_mod(op, channel, action, nick, host, added):
+        if self.CONFIG.get("DEBUG_MODE", False):
+            self.PutModule("DEBUG: Adding %s => %s" % (nick, host))
+
+        # query = "INSERT INTO moderated VALUES('" + op + "','" + channel + "','" + action + "','" + host + "','" + added "','" + str(datetime.datetime.now()) + "');"
 
     ''' OK '''
     def OnRaw(self, message):
@@ -78,20 +86,20 @@ class aka(znc.Module):
             host = str(message.s).split()[5]
             nick = str(message.s).split()[7]
             channel = str(message.s).split()[3]
-            self.process_user(host, nick, channel, True)
+            self.process_user(host, nick, channel, None, True)
         elif str(message.s).split()[1] == "311": # on WHOIS
             host = str(message.s).split()[5]
             nick = str(message.s).split()[3]
             channel = str(message.s).split()[6]
-            self.process_user(host, nick, channel, True)
+            self.process_user(host, nick, channel, None, True)
         elif str(message.s).split()[1] == "314": # on WHOWAS
             host = str(message.s).split()[5]
             nick = str(message.s).split()[3]
-            self.process_user(host, nick, channel, True)
+            self.process_user(host, nick, channel, None, True)
 
     ''' OK '''
     def OnJoin(self, user, channel):
-        self.process_user(user.GetHost(), user.GetNick(), channel.GetName(), True)
+        self.process_user(user.GetHost(), user.GetNick(), channel.GetName(), None, True)
 
         if self.CONFIG.get("NOTIFY_ON_JOIN", True) and user.GetNick() != self.GetUser().GetNick():
             if user.GetNick() in self.TIMEOUTS:
@@ -118,6 +126,12 @@ class aka(znc.Module):
 
     ''' OK '''
     def OnChanMsg(self, user, channel, message):
+        message = str(message).replace("'","''")
+        self.process_user(user.GetHost(), user.GetNick(), channel.GetName(), message, False)
+
+    ''' OK '''
+    def OnChanAction(self, user, channel, message):
+        message = "* " + str(message).replace("'","''")
         self.process_user(user.GetHost(), user.GetNick(), channel.GetName(), message, False)
 
     ''' OK '''
@@ -130,57 +144,45 @@ class aka(znc.Module):
             self.process_user(user.GetHost(), user.GetNick(), chan.GetName(), None, True)
 
     ''' OK '''
+    def OnKick(self, op, nick, channel, message):
+        self.process_mod(op, channel, 'k', nick.GetName(), nick.GetHost(), None)
+        if self.CONFIG.get("NOTIFY_ON_MODERATED", True):
+            self.PutModule(str(nick) + " has been kicked from " + str(channel) + " by " + str(op) + ". Reason: " + str(message))
+
+    ''' NOT YET IMPLEMENTED '''
+    '''
     def OnMode(self, op, channel, mode, arg, added, nochange):
-        if self.CONFIG.get("NOTIFY_ON_MODE", True):
-            if mode == 79:
-                mode = 'O'
-            elif mode == 111:
-                mode = 'o'
-            elif mode == 98:
-                mode = 'b'
-            elif mode == 118:
-                mode = 'v'
-            elif mode == 113:
-                mode = 'q'
-            elif mode == 115:
-                mode = 's'
-            elif mode == 112:
-                mode = 'p'
-            elif mode == 107:
-                mode = 'k'
-            elif mode == 97:
-                mode = 'a'
-            elif mode == 109:
-                mode = 'm'
-            elif mode == 110:
-                mode = 'n'
-            elif mode == 108:
-                mode = 'l'
-            elif mode == 101:
-                mode = 'e'
-            elif mode == 105:
-                mode = 'i'
-            elif mode == 114:
-                mode = 'r'
-            elif mode == 73:
-                mode = 'l'
-            elif mode == 116:
-                mode = 't'
-            elif mode == 104:
-                mode = 'h'
+        mode = unichr(mode)
+        self.PutModule(mode)
+        if added:
+            char = '+'
+        else:
+            char = '-'
+
+        if (self.CONFIG.get("NOTIFY_ON_MODE", True) and self.CONFIG.get("NOTIFY_ON_MODERATED", False)) or (self.CONFIG.get("NOTIFY_ON_MODE", True) and self.CONFIG.get("NOTIFY_ON_MODERATED", True) and mode != 'b' and mode != 'q')):
+            self.PutModule(str(op) + " has set mode " + str(char) + str(mode) + " " + str(arg) + " in " + str(channel))
+        elif self.CONFIG.get("NOTIFY_ON_MODERATED", True) and (mode == 'b' or mode == 'q'):
+            self.process_mod(op, channel, mode, ARG->nick, ARG->, added)
             if added:
-                self.PutModule(str(op) + " has set mode +" + str(mode) + " " + str(arg) + " in " + str(channel))
+                if mode == 'b':
+                    self.PutModule(str(nick) + " has been banned from " + str(channel) + " by " + str(op) + ". Reason: " + str(message))
+                elif mode =='q':
+                    self.PutModule(str(nick) + " has been quieted in " + str(channel) + " by " + str(op) + ". Reason: " + str(message))
             else:
-                self.PutModule(str(op) + " has set mode -" + str(mode) + " " + str(arg) + " in " + str(channel))
+                if mode == 'b':
+                    self.PutModule(str(nick) + " has been unbanned from " + str(channel) + " by " + str(op))
+                elif mode =='q':
+                    self.PutModule(str(nick) + " has been unquieted in " + str(channel) + " by " + str(op))
+    '''
 
     ''' OK '''
     def cmd_trace_nick(self, nick):
-        query = "SELECT host, nick FROM users WHERE LOWER(nick) = '" + str(nick).lower() + "' GROUP BY host ORDER BY host"
+        query = "SELECT host, nick FROM users WHERE LOWER(nick) = '" + str(nick).lower() + "' GROUP BY host ORDER BY host;"
         self.c.execute(query)
         c2 = self.conn.cursor()
         for row in self.c:
             out = str(nick) + " was also known as: "
-            query = "SELECT host, nick FROM users WHERE LOWER(host) = '" + str(row[0]).lower() + "' GROUP BY nick ORDER BY nick COLLATE NOCASE"
+            query = "SELECT host, nick FROM users WHERE LOWER(host) = '" + str(row[0]).lower() + "' GROUP BY nick ORDER BY nick COLLATE NOCASE;"
             c2.execute(query)
             for row2 in c2:
                 out += row2[1] + ", "
@@ -190,7 +192,7 @@ class aka(znc.Module):
 
     ''' OK '''
     def cmd_trace_host(self, host):
-        query = "SELECT nick, host FROM users WHERE LOWER(host) = '" + str(host).lower() + "' GROUP BY nick ORDER BY nick COLLATE NOCASE"
+        query = "SELECT nick, host FROM users WHERE LOWER(host) = '" + str(host).lower() + "' GROUP BY nick ORDER BY nick COLLATE NOCASE;"
         self.c.execute(query)
         out = str(host) + " was known as: "
         for row in self.c:
@@ -200,7 +202,7 @@ class aka(znc.Module):
 
     ''' OK '''
     def cmd_trace_nickchans(self, nick):
-        query = "SELECT DISTINCT channel FROM users WHERE LOWER(nick)  = '" + str(nick).lower() + "' AND channel IS NOT NULL ORDER BY channel"
+        query = "SELECT DISTINCT channel FROM users WHERE LOWER(nick)  = '" + str(nick).lower() + "' AND channel IS NOT NULL ORDER BY channel;"
         out = str(nick) + " was found in:"
         self.c.execute(query)
         for chan in self.c:
@@ -209,7 +211,7 @@ class aka(znc.Module):
 
     ''' OK '''
     def cmd_trace_hostchans(self, host):
-        query = "SELECT DISTINCT channel FROM users WHERE LOWER(host)  = '" + str(host).lower() + "' AND channel IS NOT NULL ORDER BY channel"
+        query = "SELECT DISTINCT channel FROM users WHERE LOWER(host)  = '" + str(host).lower() + "' AND channel IS NOT NULL ORDER BY channel;"
         out = str(host) + " was found in:"
         self.c.execute(query)
         for chan in self.c:
@@ -224,7 +226,7 @@ class aka(znc.Module):
             query += "LOWER(nick) = '" + str(nick).lower() + "' OR "
             nick_list += " " + nick
         query = query[:-5]
-        query += "') AND channel IS NOT NULL GROUP BY channel HAVING COUNT(DISTINCT nick) = " + str(len(nicks))  + " ORDER BY channel COLLATE NOCASE"
+        query += "') AND channel IS NOT NULL GROUP BY channel HAVING COUNT(DISTINCT nick) = " + str(len(nicks))  + " ORDER BY channel COLLATE NOCASE;"
 
         out = "Common channels between" + nick_list + ": "
         self.c.execute(query)
@@ -240,7 +242,7 @@ class aka(znc.Module):
             query += "LOWER(channel) = '" + str(chan).lower() + "' OR "
             chan_list += " " + chan
         query = query[:-5]
-        query += "' GROUP BY nick HAVING COUNT(DISTINCT channel) = " + str(len(chans))  + " ORDER BY nick COLLATE NOCASE"
+        query += "' GROUP BY nick HAVING COUNT(DISTINCT channel) = " + str(len(chans))  + " ORDER BY nick COLLATE NOCASE;"
 
         out = "Shared users between" + chan_list + ": "
         self.c.execute(query)
@@ -251,12 +253,12 @@ class aka(znc.Module):
     ''' OK '''
     def cmd_seen(self, mode, channel, nick):
         if mode == "in":
-            query = "SELECT seen, message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(nick) = '" + str(nick).lower() + "' AND LOWER(channel) = '" + str(channel).lower() + "') AND LOWER(nick) = '" + str(nick).lower() + "' AND LOWER(channel) = '" + str(channel).lower() + "'"
+            query = "SELECT seen, message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(nick) = '" + str(nick).lower() + "' AND LOWER(channel) = '" + str(channel).lower() + "') AND LOWER(nick) = '" + str(nick).lower() + "' AND LOWER(channel) = '" + str(channel).lower() + "';"
             self.c.execute(query)
             for row in self.c:
                 self.PutModule(str(nick) + " was last seen in " + str(channel) + " at " + str(row[0]) + " saying \"" + str(row[1]) + "\"")
         elif mode == "nick":
-            query = "SELECT channel, MAX(seen), message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(nick) = '" + str(nick).lower() + "') AND LOWER(nick) = '" + str(nick).lower() + "'"
+            query = "SELECT channel, MAX(seen), message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(nick) = '" + str(nick).lower() + "') AND LOWER(nick) = '" + str(nick).lower() + "';"
             self.c.execute(query)
             for row in self.c:
                 self.PutModule(str(nick) + " was last seen in " + str(row[0]) + " at " + str(row[1]) + " saying \"" + str(row[2]) + "\"")
@@ -305,7 +307,7 @@ class aka(znc.Module):
         self.process_user(host, nick, channel, False)
         self.PutModule("%s => %s" % (nick, host, channel))
 
-    ''' FIX '''
+    ''' NOT YET IMPLEMENTED'''
     '''
     def cmd_merge_hosts(self, URL):
         """
@@ -328,7 +330,7 @@ class aka(znc.Module):
         self.PutModule("%s hosts imported" % "{:,}".format(hosts))
     '''
 
-    ''' FIX '''
+    ''' NOT YET IMPLEMENTED '''
     '''
     def cmd_merge_chans(self, URL):
         """
@@ -364,7 +366,7 @@ class aka(znc.Module):
 
     ''' OK '''
     def cmd_stats(self):
-        self.c.execute('SELECT COUNT(DISTINCT host), COUNT(DISTINCT nick) FROM users')
+        self.c.execute('SELECT COUNT(DISTINCT host), COUNT(DISTINCT nick) FROM users;')
         for row in self.c:
             self.PutModule("Nicks: " + str(row[1]))
             self.PutModule("Hosts: " + str(row[0]))
@@ -485,6 +487,16 @@ class aka(znc.Module):
                         self.PutModule("Notify On Mode: ON")
                 else:
                     self.PutModule("Valid values: 0, 1")
+            elif var_name == "NOTIFY_ON_MODERATED":
+                if int(value) in [0, 1]:
+                    if int(value) == 0:
+                        self.CONFIG["NOTIFY_ON_MODERATED"] = False
+                        self.PutModule("Notify On Moderated: OFF")
+                    elif int(value) == 1:
+                        self.CONFIG["NOTIFY_ON_MODERATED"] = True
+                        self.PutModule("Notify On Moderated: ON")
+                else:
+                    self.PutModule("Valid values: 0, 1")
             else:
                 self.PutModule("%s is not a valid var." % var_name)
         with open(self.GetSavePath() + "/config.json", 'w') as f:
@@ -501,20 +513,22 @@ class aka(znc.Module):
         else:
             self.PutModule("You must be an administrator to update this module.")
 
+    ''' OK '''
     def db_setup(self):
         self.conn = sqlite3.connect(self.GetSavePath() + "/aka." + self.NETWORK + ".db")
         self.c = self.conn.cursor()
-        self.c.execute("create table if not exists users (host, nick, channel, seen, UNIQUE(host COLLATE NOCASE, nick COLLATE NOCASE, channel COLLATE NOCASE))")
+        self.c.execute("create table if not exists users (host, nick, channel, seen, UNIQUE(host COLLATE NOCASE, nick COLLATE NOCASE, channel COLLATE NOCASE));")
+        #self.c.execute("create table if not exists moderated (op, channel, action, nick, host, added, time)")
+
 
         ''' ADDITIONAL TABLES '''
-        self.c.execute("PRAGMA table_info(users)")
+        self.c.execute("PRAGMA table_info(users);")
         exists = False
         for table in self.c:
             if str(table[1]) == 'message':
                 exists = True
         if exists == False:
-            self.c.execute("ALTER TABLE users ADD COLUMN message")
-
+            self.c.execute("ALTER TABLE users ADD COLUMN message;")
 
     ''' OK '''
     def transfer_data(self):
@@ -554,7 +568,7 @@ class aka(znc.Module):
 
             for chan in chans:
                 for user in chans[chan]:
-                        query = "INSERT OR IGNORE INTO users (host, nick, channel) VALUES ('" + str(user[1]) + "','" + str(user[0]) + "','" + str(chan) + "')"
+                        query = "INSERT OR IGNORE INTO users (host, nick, channel) VALUES ('" + str(user[1]) + "','" + str(user[0]) + "','" + str(chan) + "');"
                         self.c.execute(query)
                 del user
             del chans[chan]
@@ -564,7 +578,7 @@ class aka(znc.Module):
             hosts = json.loads(open(self.GetSavePath() + "/hosts.json", 'r').read())
             for host in hosts:
                 for nick in hosts[host]:
-                        query = "INSERT OR IGNORE INTO users (host, nick) VALUES ('" + str(host) + "','" + str(nick) + "')"
+                        query = "INSERT OR IGNORE INTO users (host, nick) VALUES ('" + str(host) + "','" + str(nick) + "');"
                         self.c.execute(query)
                 del nick
             del hosts[host]

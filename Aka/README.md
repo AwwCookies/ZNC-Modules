@@ -67,3 +67,4 @@ Aka must be loaded on each network you wish to use it on
  * **NOTIFY_ON_JOIN_TIMEOUT** *(int: seconds)* How long to wait before sending notification again for same user
  * **NOTIFY_DEFAULT_MODE** *(nick/host)* Whether to use nick or host for on join trace
  * **NOTIFY_ON_MODE** *(0/1)* Automatically be notified when channel modes are changed
+ * **NOTIFY_ON_MODERATED** *(0/1)* Be notified when a user is banned, quieted, or kicked
