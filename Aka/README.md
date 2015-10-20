@@ -7,7 +7,7 @@
 
 *Migration of data from `master` to `sqlite` is automatic. Original data files are preserved, although new SQL data migration back to JSON is **not** currently supported.*
 
-Please note that requirements differ slighty. Please read the Requirements section carefully.
+Please note that requirements differ slighty. **You must install <a href="https://www.sqlite.org">sqlite3</a> before migrating from JSON to sqlite**
 
 ## Requirements
  * <a href="http://znc.in">ZNC</a>
