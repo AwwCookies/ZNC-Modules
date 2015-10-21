@@ -23,7 +23,9 @@ To install aka, place aka.py in your ZNC modules folder
 aka must be loaded on each network you wish to use it on
 `/msg *status loadmod Aka`
 
-## `trace` Commands
+## Commands
+
+### `trace` Commands
 
 `nick <nick>` Shows nick change and host history for given nick
 
@@ -35,7 +37,7 @@ aka must be loaded on each network you wish to use it on
 
 `hostchans <host>` Get all channels a host has been seen in
 
-## Moderation History Commands
+### Moderation History Commands
 
 `offenses nick <nick>` Display kick/ban/quiet history for nick
 
@@ -45,7 +47,7 @@ aka must be loaded on each network you wish to use it on
 
 `offenses in host <channel> <host>` Display kick/ban/quiet history for host in channel
 
-## User Info Commands
+### User Info Commands
 
 `seen nick <nick>` Displays last time user was seen speaking globally
 
@@ -55,7 +57,7 @@ aka must be loaded on each network you wish to use it on
 
 `geoip <nick>` Geolocates a user by nick
 
-## Modify Data Commands
+### Modify Data Commands
 
 `add <nick> <host>` Manually add a nick/host entry to the database
 
@@ -65,7 +67,7 @@ aka must be loaded on each network you wish to use it on
 
 `merge chans <url>` Merges the **chans** files from two users
 
-## Other Commands
+### Other Commands
 
 `info` Display information about the module
 
