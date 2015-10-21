@@ -1,7 +1,11 @@
 # Changelog
 
+### Version 1.0.3
+  * Kick, ban, and quiet tracking ("moderated")
+  * `offenses` command to see kick/ban/quiet history
+
 ### Version 1.0.2
-  *  Bug fixes
+  * Bug fixes
   * Track OnChanAction
 
 ### Version 1.0.1

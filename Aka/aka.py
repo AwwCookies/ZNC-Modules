@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                     #
-#   Last Update: Oct 20th 2015                                        #
-#   Version: 1.0.3b SQL                                           # # #
+#   Last Update: Oct 21th 2015                                        #
+#   Version: 1.0.3 SQL                                           # # #
 #   Desc: A ZNC Module to track nicks                             # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -19,7 +19,7 @@ import json
 import requests
 
 ''' NO RESULTS OUTPUT '''
-''' OFFENSES COMMAND NOT YET IMPLEMENTED '''
+''' CHECK FOR SQLITE3 '''
 
 DEFAULT_CONFIG = {
     "DEBUG_MODE": False, # 0/1
@@ -56,6 +56,8 @@ class aka(znc.Module):
         if self.CONFIG.get("DEBUG_MODE", False):
             self.PutModule("DEBUG: Adding %s => %s" % (nick, host))
 
+        message = str(message).replace("'","''")
+
         query = "SELECT * FROM users WHERE LOWER(nick) = '" + nick.lower() + "' AND LOWER(host) = '" + host.lower() + "'  AND LOWER(channel) = '" + channel.lower() + "';"
 
         self.c.execute(query)
@@ -77,7 +79,9 @@ class aka(znc.Module):
         if self.CONFIG.get("DEBUG_MODE", False):
             self.PutModule("DEBUG: Adding %s => %s" % (nick, host))
 
-        query = "INSERT INTO moderated VALUES('" + str(op_nick) + "','" + str(op_host) + "','" + str(channel) + "','" + str(action) + "','" + str(message) + "','" + str(offender_nick) + "','" + str(offender_host) + "','" + str(added) + "','" + str(datetime.datetime.now()) + "')"
+        message = str(message).replace("'","''")
+
+        query = "INSERT INTO moderated VALUES('" + str(op_nick) + "','" + str(op_host) + "','" + str(channel) + "','" + str(action) + "','" + str(message) + "','" + str(offender_nick) + "','" + str(offender_host) + "','" + str(added) + "','" + str(datetime.datetime.now()) + "');"
         self.c.execute(query)
         self.conn.commit()
 
@@ -137,7 +141,6 @@ class aka(znc.Module):
 
     ''' OK '''
     def OnChanMsg(self, user, channel, message):
-        message = str(message).replace("'","''")
         self.process_user(user.GetHost(), user.GetNick(), channel.GetName(), message, False)
 
     ''' OK '''
@@ -164,6 +167,7 @@ class aka(znc.Module):
         self.get_raw_kicked_host = True
         self.PutIRC("WHO " + nick)
 
+    ''' OK '''
     def on_kick_process(self, op_nick, op_host, channel, offender_nick, offender_host, message):
         self.process_moderated(op_nick, op_host, channel, 'k', message, offender_nick, offender_host, None)
         if self.CONFIG.get("NOTIFY_ON_MODERATED", True):
@@ -283,6 +287,36 @@ class aka(znc.Module):
                 self.PutModule(str(nick) + " was last seen in " + str(row[0]) + " at " + str(row[1]) + " saying \"" + str(row[2]) + "\"")
 
     ''' OK '''
+    def cmd_offenses(self, method, user_type, user, channel):
+        if method == "user":
+            if user_type == "nick":
+                query = "SELECT * FROM moderated WHERE LOWER(offender_nick) = '" + str(user).lower() + "' OR LOWER(offender_nick) LIKE '" + str(user).lower() + "!%' OR LOWER(offender_nick) LIKE '" + str(user).lower() + "*%' ORDER BY time;"
+            elif user_type == "host":
+                query = "SELECT * FROM moderated WHERE LOWER(offender_host) = '" + str(user).lower() + "' ORDER BY time;"
+        elif method == "channel":
+            if user_type == "nick":
+                query = "SELECT * FROM moderated WHERE channel = '" + str(channel) + "' and (LOWER(offender_nick) = '" + str(user).lower() + "' OR LOWER(offender_nick) LIKE '" + str(user).lower() + "!%' OR LOWER(offender_nick) LIKE '" + str(user).lower() + "*%') ORDER BY time;"
+            elif user_type == "host":
+                query = "SELECT * FROM moderated WHERE channel = '" + str(channel) + "' and LOWER(offender_host) = '" + str(user).lower() + "' ORDER BY time;"
+
+        self.c.execute(query)
+        for op_nick, op_host, channel, action, message, offender_nick, offender_host, added, time in self.c.fetchall():
+            if action == "b" or action == "q":
+                if added:
+                    if action == 'b':
+                        action = 'banned'
+                    elif action =='q':
+                        action = 'quieted'
+                else:
+                    if action == 'b':
+                        action = 'unbanned'
+                    elif action =='q':
+                        action = 'unquieted'
+                self.PutModule(str(user) + " (" + str(offender_host) + ")" + " was " + action + " from " + str(channel) + " by " + str(op_nick) + " on " + str(time) + ".")
+            elif action == "k":
+                self.PutModule(str(user) + " (" + str(offender_host) + ")" + " was kicked from " + str(channel) + " by " + str(op_nick) + " on " + str(time) + ". Reason: " + str(message))
+
+    ''' OK '''
     def cmd_geoip(self, method, user):
         if method == "host":
             self.geoip_process(user, user)
@@ -393,7 +427,7 @@ class aka(znc.Module):
     ''' OK '''
     def OnModCommand(self, command):
         # Valid Commands
-        cmds = ["trace", "seen", "geoip", "help", "config", "getconfig", "info", "add", "merge", "version", "stats", "update"]
+        cmds = ["trace", "seen", "offenses", "geoip", "help", "config", "getconfig", "info", "add", "merge", "version", "stats", "update"]
         if command.split()[0] in cmds:
             if command.split()[0] == "trace":
                 cmds = ["sharedchans", "intersect", "hostchans", "nickchans", "nick", "host", "geoip"]
@@ -419,6 +453,22 @@ class aka(znc.Module):
                         self.cmd_seen(command.split()[1], None, command.split()[2])
                     elif command.split()[1] == "in":
                         self.cmd_seen(command.split()[1], command.split()[2], command.split()[3])
+                else:
+                    self.PutModule(command.split()[0] + " " + command.split()[1] + " is not a valid command.")
+            elif command.split()[0] == "offenses":
+                cmds = ["in", "nick", "host"]
+                if command.split()[1] in cmds:
+                    if command.split()[1] == "nick":
+                        self.cmd_offenses("user", "nick", command.split()[2], None)
+                    elif command.split()[1] == "host":
+                        self.cmd_offenses("user", "host", command.split()[2], None)
+                    elif command.split()[1] == "in":
+                        if command.split()[2] == "nick":
+                            self.cmd_offenses("channel", "nick", command.split()[4], command.split()[3])
+                        elif command.split()[2] == "host":
+                            self.cmd_offenses("channel", "host", command.split()[4], command.split()[3])
+                        else:
+                            self.PutModule(command.split()[0] + " " + command.split()[1] + " " + command.split()[2] + " is not a valid command.")
                 else:
                     self.PutModule(command.split()[0] + " " + command.split()[1] + " is not a valid command.")
             elif command.split()[0] == "geoip":
@@ -622,16 +672,14 @@ class aka(znc.Module):
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| trace nickchans    | <nick>                                    | Get all channels a nick has been seen in")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        '''
-        self.PutModule("| offenses nick      | <nick>                                    | Get all channels a nick has been seen in")
+        self.PutModule("| offenses nick      | <nick>                                    | Display kick/ban/quiet history for nick")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| offenses host      | <host>                                    | Display kick/ban/quiet history for nick")
+        self.PutModule("| offenses host      | <host>                                    | Display kick/ban/quiet history for host")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| offenses in nick   | <channel> <nick>                          | Display kick/ban/quiet history for nick in channel")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| offenses in host   | <channel> <host>                          | Display kick/ban/quiet history for host in channel")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        '''
         self.PutModule("| seen nick          | <nick>                                    | Last time and where the nick was seen")
         self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| seen in            | <channel> <nick>                          | Last time and where the nick was seen")

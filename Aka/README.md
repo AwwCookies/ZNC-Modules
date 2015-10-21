@@ -1,3 +1,14 @@
+## Branches
+
+**Two (2) branches of aka currently exist, both of which are supported:**
+
+ * <a href="https://github.com/AwwCookies/ZNC-Modules/tree/master/Aka">`master`</a> is the original module, with all basic features and tracking
+ * <a href="https://github.com/AwwCookies/ZNC-Modules/tree/sqlite/Aka">`sqlite`</a> is a rewrite of the JSON (master) version to use SQL (sqlite) data storage instead. It contains additional features and capabilities.
+
+*Migration of data from `master` to `sqlite` is automatic. Original data files are preserved, although new SQL data migration back to JSON is **not** currently supported.*
+
+Please note that requirements differ slighty. **You must install <a href="https://www.sqlite.org">sqlite3</a> before migrating from JSON to sqlite.**
+
 ## Requirements
  * <a href="http://znc.in">ZNC</a>
  * <a href="https://www.python.org">Python 3</a>
@@ -9,7 +20,7 @@
 To install aka, place aka.py in your ZNC modules folder
 
 ## Loading
-Aka must be loaded on each network you wish to use it on
+aka must be loaded on each network you wish to use it on
 `/msg *status loadmod Aka`
 
 ## `trace` Commands
@@ -23,6 +34,16 @@ Aka must be loaded on each network you wish to use it on
 `nickchans <nick>` Get all channels a nick has been seen in
 
 `hostchans <host>` Get all channels a host has been seen in
+
+## Moderation History Commands
+
+`offenses nick <nick>` Display kick/ban/quiet history for nick
+
+`offenses host <host>` Display kick/ban/quiet history for host
+
+`offenses in nick <channel> <nick>` Display kick/ban/quiet history for nick in channel
+
+`offenses in host <channel> <host>` Display kick/ban/quiet history for host in channel
 
 ## User Info Commands
 
@@ -68,3 +89,9 @@ Aka must be loaded on each network you wish to use it on
  * **NOTIFY_DEFAULT_MODE** *(nick/host)* Whether to use nick or host for on join trace
  * **NOTIFY_ON_MODE** *(0/1)* Automatically be notified when channel modes are changed
  * **NOTIFY_ON_MODERATED** *(0/1)* Be notified when a user is banned, quieted, or kicked
+
+## Contact
+
+Issues/bugs should be submitted on the <a href="https://github.com/AwwCookies/ZNC-Modules/issues">GitHub issues page</a>.
+
+For assistance, please e-mail AwwCookies (Aww) at <a href="mailto:aww@smile.sh">aww@smile.sh<a> or PM MuffinMedic (Evan) on <a href="https://kiwiirc.com/client/irc.freenode.net:+6697">freenode<a/> or <a href="https://kiwiirc.com/client/irc.snoonet.org:+6697">Snoonet<a>.
