@@ -1,5 +1,9 @@
 # Changelog
 
+### Version 1.0.4
+  * New `import` and `export` commands for sharing data
+  * G/K/Z/Q-Line and Kill tracking
+
 ### Version 1.0.3
   * Kick, ban, and quiet tracking ("moderated")
   * `offenses` command to see kick/ban/quiet history

@@ -63,9 +63,11 @@ aka must be loaded on each network you wish to use it on
 
 `save` Manually save the latest tracks to disk
 
-`merge hosts <url>` Merges the **hosts** files from two users
+`import <url>` Imports user data to DB from valid JSON file url
 
-`merge chans <url>` Merges the **chans** files from two users
+`export nick <nick>` Exports nick data to JSON file
+
+`export host <host>` Exports host data to JSON file
 
 ### Other Commands
 
