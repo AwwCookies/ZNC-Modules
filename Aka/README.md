@@ -1,13 +1,4 @@
-## Branches
-
-**Two (2) branches of aka currently exist. `sqlite` is being actively developed and supported:**
-
- * <a href="https://github.com/AwwCookies/ZNC-Modules/tree/master/Aka">`master`</a> is the original module, with all basic features and tracking
- * <a href="https://github.com/AwwCookies/ZNC-Modules/tree/sqlite/Aka">`sqlite`</a> is a rewrite of the JSON (master) version to use SQL (sqlite) data storage instead. It contains additional features and capabilities.
-
-*Migration of data from `master` to `sqlite` is automatic. Original data files are preserved, although new SQL data migration back to JSON is **not** currently supported.*
-
-Please note that requirements differ slighty. **You must install <a href="https://www.sqlite.org">sqlite3</a> before migrating from JSON to sqlite**
+**Please note: This is an old branch and is not being actively developed. See `master` for the latest version.**
 
 ## Requirements
  * <a href="http://znc.in">ZNC</a>
