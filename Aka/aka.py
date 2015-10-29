@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                 #
-#   Last Update: Oct 28,  2015                                    #
-#   Version: 1.0.4 SQL                                            #
+#   Last Update: Oct 29,  2015                                    #
+#   Version: 1.0.4                                                #
 #   Desc: A ZNC Module to track nicks                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
