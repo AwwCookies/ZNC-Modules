@@ -1,6 +1,6 @@
 ## Branches
 
-**Two (2) branches of aka currently exist, both of which are supported:**
+**Two (2) branches of aka currently exist. `sqlite` is being actively developed and supported:**
 
  * <a href="https://github.com/AwwCookies/ZNC-Modules/tree/master/Aka">`master`</a> is the original module, with all basic features and tracking
  * <a href="https://github.com/AwwCookies/ZNC-Modules/tree/sqlite/Aka">`sqlite`</a> is a rewrite of the JSON (master) version to use SQL (sqlite) data storage instead. It contains additional features and capabilities.
