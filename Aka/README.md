@@ -14,15 +14,18 @@ Please note that requirements differ slighty. **You must install <a href="https:
  * <a href="https://www.python.org">Python 3</a>
  * <a href="http://wiki.znc.in/Modpython">modpython</a>
  * <a href="http://docs.python-requests.org/en/latest/">python3-requests</a>
+ * <a href="https://www.sqlite.org">sqlite3</a>
 
 ## Installation
-To install Aka, place Aka.py in your ZNC modules folder
+To install aka, place aka.py in your ZNC modules folder
 
 ## Loading
-Aka must be loaded on each network you wish to use it on
+aka must be loaded on each network you wish to use it on
 `/msg *status loadmod Aka`
 
-## `trace` Commands
+## Commands
+
+### `trace` Commands
 
 `nick <nick>` Shows nick change and host history for given nick
 
@@ -34,23 +37,39 @@ Aka must be loaded on each network you wish to use it on
 
 `hostchans <host>` Get all channels a host has been seen in
 
-## User Info Commands
+### Moderation History Commands
+
+`offenses nick <nick>` Display kick/ban/quiet history for nick
+
+`offenses host <host>` Display kick/ban/quiet history for host
+
+`offenses in nick <channel> <nick>` Display kick/ban/quiet history for nick in channel
+
+`offenses in host <channel> <host>` Display kick/ban/quiet history for host in channel
+
+### User Info Commands
+
+`seen nick <nick>` Displays last time user was seen speaking globally
+
+`seen in <chan> <nick>` Displays last time user was seen speaking in channel
 
 `geoip <host>` Geolocates the given host
 
-`geoip <nick` Geolocates a user by nick
+`geoip <nick>` Geolocates a user by nick
 
-## Modify Data Commands
+### Modify Data Commands
 
 `add <nick> <host>` Manually add a nick/host entry to the database
 
 `save` Manually save the latest tracks to disk
 
-`merge hosts <url>` Merges the **hosts** files from two users
+`import <url>` Imports user data to DB from valid JSON file url
 
-`merge chans <url>` Merges the **chans** files from two users
+`export nick <nick>` Exports nick data to JSON file
 
-## Other Commands
+`export host <host>` Exports host data to JSON file
+
+### Other Commands
 
 `info` Display information about the module
 
@@ -68,12 +87,16 @@ Aka must be loaded on each network you wish to use it on
 
 ## Configuration Variables
 
- * **SAVE_EVERY** *(seconds)* How often changes are written to disk
- * **TEMP_FILES** *(0/1)* Whether or not data is stored in temp files or written directly to save files
  * **DEBUG_MODE** *(0/1)* Display raw output
  * **NOTIFY_ON_JOIN** *(0/1)* Automatically run `trace nick` when a user joins a channel
  * **NOTIFY_ON_JOIN_TIMEOUT** *(int: seconds)* How long to wait before sending notification again for same user
+<<<<<<< HEAD
+ * **NOTIFY_DEFAULT_MODE** *(nick/host)* Whether to use nick or host for on join trace
+ * **NOTIFY_ON_MODE** *(0/1)* Automatically be notified when channel modes are changed
+ * **NOTIFY_ON_MODERATED** *(0/1)* Be notified when a user is banned, quieted, or kicked
+=======
  * **NOTIFY_DEFAULT_MODE** *(nick/host)*
+>>>>>>> master
 
 ## Contact
 
