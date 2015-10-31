@@ -330,7 +330,6 @@ class aka(znc.Module):
 
         self.c.execute(query)
         for op_nick, op_host, channel, action, message, offender_nick, offender_host, added, time in self.c.fetchall():
-            self.PutModule(added)
             if action == "b" or action == "q":
                 if added == '1':
                     if action == 'b':
