@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                 #
-#   Last Update: Oct 30,  2015                                    #
+#   Last Update: Oct 31, 2015                                     #
 #   Version: 1.0.4                                                #
 #   Desc: A ZNC Module to track nicks                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -305,15 +305,26 @@ class aka(znc.Module):
 
     ''' OK '''
     def cmd_offenses(self, method, user_type, user, channel):
+        query = ''
         cols = "op_nick, op_host, channel, action, message, offender_nick, offender_host, added, time"
         if method == "user":
             if user_type == "nick":
-                query = "SELECT " + cols + " FROM moderated WHERE LOWER(offender_nick) = '" + str(user).lower() + "' OR LOWER(offender_nick) LIKE '" + str(user).lower() + "!%' OR LOWER(offender_nick) LIKE '" + str(user).lower() + "*%' ORDER BY time;"
+                query = "SELECT host, nick FROM users WHERE LOWER(nick) = '" + str(user).lower() + "' GROUP BY host ORDER BY host;"
+                self.c.execute(query)
+                query = "SELECT " + cols + " FROM moderated WHERE LOWER(offender_nick) = '" + str(user).lower() + "' OR LOWER(offender_nick) LIKE '" + str(user).lower() + "!%' OR LOWER(offender_nick) LIKE '" + str(user).lower() + "*%"
+                for row in self.c:
+                    query +=  "' OR LOWER(offender_host) = '" + str(row[0]).lower()
+                query += "' ORDER BY time;"
             elif user_type == "host":
                 query = "SELECT " + cols + " FROM moderated WHERE LOWER(offender_host) = '" + str(user).lower() + "' ORDER BY time;"
         elif method == "channel":
             if user_type == "nick":
-                query = "SELECT " + cols + " FROM moderated WHERE channel = '" + str(channel) + "' and (LOWER(offender_nick) = '" + str(user).lower() + "' OR LOWER(offender_nick) LIKE '" + str(user).lower() + "!%' OR LOWER(offender_nick) LIKE '" + str(user).lower() + "*%') ORDER BY time;"
+                query = "SELECT host, nick FROM users WHERE LOWER(nick) = '" + str(user).lower() + "' GROUP BY host ORDER BY host;"
+                self.c.execute(query)
+                query = "SELECT " + cols + " FROM moderated WHERE channel = '" + str(channel) + "' AND (LOWER(offender_nick) = '" + str(user).lower() + "' OR LOWER(offender_nick) LIKE '" + str(user).lower() + "!%' OR LOWER(offender_nick) LIKE '" + str(user).lower() + "*%"
+                for row in self.c:
+                    query +=  "' OR LOWER(offender_host) = '" + str(row[0]).lower()
+                query += "') ORDER BY time;"
             elif user_type == "host":
                 query = "SELECT " + cols + " FROM moderated WHERE channel = '" + str(channel) + "' and LOWER(offender_host) = '" + str(user).lower() + "' ORDER BY time;"
 
