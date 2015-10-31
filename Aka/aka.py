@@ -593,14 +593,6 @@ class aka(znc.Module):
         if exists == False:
             self.c.execute("ALTER TABLE users ADD COLUMN message;")
 
-        self.c.execute("PRAGMA table_info(users);")
-        exists = False
-        for table in self.c:
-            if str(table[1]) == 'identity':
-                exists = True
-        if exists == False:
-            self.c.execute("ALTER TABLE users ADD COLUMN identity;")
-
         self.c.execute("PRAGMA table_info(moderated);")
         exists = False
         for table in self.c:
