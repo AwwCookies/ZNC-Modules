@@ -1,5 +1,10 @@
 # Changelog
 
+### Version 1.0.5
+  * Added output if no results found
+  * `seen host`, `seen in nick <#channel> <nick>`, and `seen in host <#channel> <host>`
+  * New `trace sharedchans nicks` and `trace sharedchans hosts`
+
 ### Version 1.0.4
   * New `import` and `export` commands for sharing data
   * G/K/Z/Q-Line and Kill tracking

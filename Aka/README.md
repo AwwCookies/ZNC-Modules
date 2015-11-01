@@ -18,7 +18,9 @@ aka must be loaded on each network you wish to use it on
 
 `nick <nick>` Shows nick change and host history for given nick
 
-`sharedchans <nick1> <nick2> ... <nick#>` Show common channels between a list of users
+`sharedchans nicks <nick1> <nick2> ... <nick#>` Show common channels between a list of nicks
+
+`sharedchans hosts <host1> <host2> ... <host#>` Show common channels between a list of hosts
 
 `intersect <#channel1> <#channel2> ... <#channel#>` Display users common to a list of channels
 
@@ -38,9 +40,13 @@ aka must be loaded on each network you wish to use it on
 
 ### User Info Commands
 
-`seen nick <nick>` Displays last time user was seen speaking globally
+`seen nick <nick>` Displays last time nick was seen speaking globally
 
-`seen in <chan> <nick>` Displays last time user was seen speaking in channel
+`seen host <host>` Displays last time host was seen speaking globally
+
+`seen in nick <#channel> <nick>` Displays last time nick was seen speaking in channel
+
+`seen in host <#channel> <host>` Displays last time host was seen speaking in channel
 
 `geoip <host>` Geolocates the given host
 

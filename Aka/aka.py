@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                 #
-#   Last Update: Oct 31, 2015                                     #
-#   Version: 1.0.4                                                #
+#   Last Update: Nov 01, 2015                                     #
+#   Version: 1.0.5                                                #
 #   Desc: A ZNC Module to track nicks                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -19,9 +19,7 @@ import collections
 
 import requests
 
-''' NO RESULTS OUTPUT '''
-''' CHECK FOR SQLITE3 '''
-''' SEEN HOST '''
+''' SHAREDCHANS HOST '''
 
 DEFAULT_CONFIG = {
     "DEBUG_MODE": False, # 0/1
@@ -219,60 +217,80 @@ class aka(znc.Module):
     def cmd_trace_nick(self, nick):
         query = "SELECT host, nick FROM users WHERE LOWER(nick) = '" + str(nick).lower() + "' GROUP BY host ORDER BY host;"
         self.c.execute(query)
-        c2 = self.conn.cursor()
-        for row in self.c:
-            out = str(nick) + " was also known as: "
-            query = "SELECT host, nick FROM users WHERE LOWER(host) = '" + str(row[0]).lower() + "' GROUP BY nick ORDER BY nick COLLATE NOCASE;"
-            c2.execute(query)
-            for row2 in c2:
-                out += row2[1] + ", "
-            out = out[:-2]
-            out += " (" + str(row[0]) + ")"
-            self.PutModule(out)
+        data = self.c.fetchall()
+        if len(data) > 0:
+            c2 = self.conn.cursor()
+            for row in data:
+                out = str(nick) + " was also known as: "
+                query = "SELECT host, nick FROM users WHERE LOWER(host) = '" + str(row[0]).lower() + "' GROUP BY nick ORDER BY nick COLLATE NOCASE;"
+                c2.execute(query)
+                for row2 in c2:
+                    out += row2[1] + ", "
+                out = out[:-2]
+                out += " (" + str(row[0]) + ")"
+                self.PutModule(out)
+        else:
+            self.PutModule("No results found for nick: " + str(nick))
 
     ''' OK '''
     def cmd_trace_host(self, host):
         query = "SELECT nick, host FROM users WHERE LOWER(host) = '" + str(host).lower() + "' GROUP BY nick ORDER BY nick COLLATE NOCASE;"
         self.c.execute(query)
-        out = str(host) + " was known as: "
-        for row in self.c:
-            out += row[0] + ", "
-        out = out[:-2]
-        self.PutModule(out)
+        data = self.c.fetchall()
+        if len(data) > 0:
+            out = str(host) + " was known as: "
+            for row in data:
+                out += row[0] + ", "
+            out = out[:-2]
+            self.PutModule(out)
+        else:
+            self.PutModule("No results found for host: " + str(host))
 
     ''' OK '''
     def cmd_trace_nickchans(self, nick):
         query = "SELECT DISTINCT channel FROM users WHERE LOWER(nick)  = '" + str(nick).lower() + "' AND channel IS NOT NULL ORDER BY channel;"
-        out = str(nick) + " was found in:"
         self.c.execute(query)
-        for chan in self.c:
-            out += " " + chan[0]
-        self.PutModule(out)
+        data = self.c.fetchall()
+        if len(data) > 0:
+            out = str(nick) + " was found in:"
+            for chan in data:
+                out += " " + chan[0]
+            self.PutModule(out)
+        else:
+            self.PutModule("No results found for nick: " + str(nick))
 
     ''' OK '''
     def cmd_trace_hostchans(self, host):
         query = "SELECT DISTINCT channel FROM users WHERE LOWER(host)  = '" + str(host).lower() + "' AND channel IS NOT NULL ORDER BY channel;"
-        out = str(host) + " was found in:"
         self.c.execute(query)
-        for chan in self.c:
-            out += " " + chan[0]
-        self.PutModule(out)
+        data = self.c.fetchall()
+        if len(data) > 0:
+            out = str(host) + " was found in:"
+            for chan in data:
+                out += " " + chan[0]
+            self.PutModule(out)
+        else:
+            self.PutModule("No results found for host: " + str(host))
 
     ''' OK '''
-    def cmd_trace_sharedchans(self, nicks):
-        nick_list = ''
+    def cmd_trace_sharedchans(self, user_type, users):
+        user_list = ''
         query = "SELECT DISTINCT channel FROM users WHERE ("
-        for nick in nicks:
-            query += "LOWER(nick) = '" + str(nick).lower() + "' OR "
-            nick_list += " " + nick
+        for user in users:
+            query += "LOWER(" + str(user_type) + ") = '" + str(user).lower() + "' OR "
+            user_list += " " + user
         query = query[:-5]
-        query += "') AND channel IS NOT NULL GROUP BY channel HAVING COUNT(DISTINCT nick) = " + str(len(nicks))  + " ORDER BY channel COLLATE NOCASE;"
+        query += "') AND channel IS NOT NULL GROUP BY channel HAVING COUNT(DISTINCT " + user_type + ") = " + str(len(users))  + " ORDER BY channel COLLATE NOCASE;"
 
-        out = "Common channels between" + nick_list + ": "
         self.c.execute(query)
-        for chan in self.c:
-            out += chan[0] + " "
-        self.PutModule(out)
+        data = self.c.fetchall()
+        if len(data) > 0:
+            out = "Common channels between" + user_list + ": "
+            for chan in data:
+                out += chan[0] + " "
+            self.PutModule(out)
+        else:
+            self.PutModule("No results found for " + str(user_type) + "s:" + str(user_list))
 
     ''' OK '''
     def cmd_trace_intersect(self, chans):
@@ -284,24 +302,38 @@ class aka(znc.Module):
         query = query[:-5]
         query += "' GROUP BY nick HAVING COUNT(DISTINCT channel) = " + str(len(chans))  + " ORDER BY nick COLLATE NOCASE;"
 
-        out = "Shared users between" + chan_list + ": "
         self.c.execute(query)
-        for nick in self.c:
-            out += nick[0] + " "
-        self.PutModule(out)
+        data = self.c.fetchall()
+        if len(data) > 0:
+            out = "Shared users between" + chan_list + ": "
+            for nick in data:
+                out += nick[0] + " "
+            self.PutModule(out)
+        else:
+            self.PutModule("No results found for channels:" + str(chan_list))
 
     ''' OK '''
-    def cmd_seen(self, mode, channel, nick):
+    def cmd_seen(self, mode, user_type, channel, user):
         if mode == "in":
-            query = "SELECT seen, message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(nick) = '" + str(nick).lower() + "' AND LOWER(channel) = '" + str(channel).lower() + "') AND LOWER(nick) = '" + str(nick).lower() + "' AND LOWER(channel) = '" + str(channel).lower() + "';"
+            query = "SELECT seen, message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(nick) = '" + str(user).lower() + "' AND LOWER(channel) = '" + str(channel).lower() + "') AND LOWER(nick) = '" + str(user).lower() + "' AND LOWER(channel) = '" + str(channel).lower() + "';"
             self.c.execute(query)
-            for row in self.c:
-                self.PutModule(str(nick) + " was last seen in " + str(channel) + " at " + str(row[0]) + " saying \"" + str(row[1]) + "\"")
-        elif mode == "nick":
-            query = "SELECT channel, MAX(seen), message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(nick) = '" + str(nick).lower() + "') AND LOWER(nick) = '" + str(nick).lower() + "';"
+            self.PutModule(query)
+            data = self.c.fetchall()
+            if len(data) > 0:
+                for row in data:
+                    self.PutModule(str(user) + " was last seen in " + str(channel) + " at " + str(row[0]) + " saying \"" + str(row[1]) + "\"")
+            else:
+                self.PutModule("No results found for: " + str(user) + " in " + str(channel))
+        elif mode == "nick" or mode == "host":
+            query = "SELECT channel, MAX(seen), message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(" + str(mode) + ") = '" + str(user).lower() + "') AND LOWER(" + str(mode) + ") = '" + str(user).lower() + "';"
             self.c.execute(query)
-            for row in self.c:
-                self.PutModule(str(nick) + " was last seen in " + str(row[0]) + " at " + str(row[1]) + " saying \"" + str(row[2]) + "\"")
+            self.PutModule(query)
+            data = self.c.fetchall()
+            if data[0][0] != None:
+                for row in data:
+                    self.PutModule(str(user) + " was last seen in " + str(row[0]) + " at " + str(row[1]) + " saying \"" + str(row[2]) + "\"")
+            else:
+                self.PutModule("No results found for: " + str(user))
 
     ''' OK '''
     def cmd_offenses(self, method, user_type, user, channel):
@@ -329,34 +361,45 @@ class aka(znc.Module):
                 query = "SELECT " + cols + " FROM moderated WHERE channel = '" + str(channel) + "' and LOWER(offender_host) = '" + str(user).lower() + "' ORDER BY time;"
 
         self.c.execute(query)
-        for op_nick, op_host, channel, action, message, offender_nick, offender_host, added, time in self.c.fetchall():
-            if action == "b" or action == "q":
-                if added == '1':
-                    if action == 'b':
-                        action = 'banned'
-                    elif action =='q':
-                        action = 'quieted'
-                else:
-                    if action == 'b':
-                        action = 'unbanned'
-                    elif action =='q':
-                        action = 'unquieted'
-                self.PutModule(str(user) + " (" + str(offender_host) + ")" + " was " + action + " from " + str(channel) + " by " + str(op_nick) + " on " + str(time) + ".")
-            elif action == "k":
-                self.PutModule(str(user) + " (" + str(offender_host) + ")" + " was kicked from " + str(channel) + " by " + str(op_nick) + " on " + str(time) + ". Reason: " + str(message))
-            elif action == "gl" or action == "kl" or action == "zl" or action == "ql" or action == "kd":
-                if action == "gl":
-                    action = "G-Lined"
-                elif action == "kl":
-                    action = "K-Lined"
-                elif action == "zl":
-                    action = "Z-Lined"
-                elif action == "ql":
-                    action = "Q-Lined"
-                elif action == "kd":
-                    action = "Killed"
+        data = self.c.fetchall()
+        if len(data) > 0:
+            for op_nick, op_host, channel, action, message, offender_nick, offender_host, added, time in data:
+                if user_type == "nick":
+                    offender = offender_host
+                elif user_type == "host":
+                    offender = offender_nick
+                if action == "b" or action == "q":
+                    if added == '1':
+                        if action == 'b':
+                            action = 'banned'
+                        elif action =='q':
+                            action = 'quieted'
+                    else:
+                        if action == 'b':
+                            action = 'unbanned'
+                        elif action =='q':
+                            action = 'unquieted'
+                    self.PutModule(str(user) + " (" + str(offender) + ")" + " was " + action + " from " + str(channel) + " by " + str(op_nick) + " on " + str(time) + ".")
+                elif action == "k":
+                    self.PutModule(str(user) + " (" + str(offender) + ")" + " was kicked from " + str(channel) + " by " + str(op_nick) + " on " + str(time) + ". Reason: " + str(message))
+                elif action == "gl" or action == "kl" or action == "zl" or action == "ql" or action == "kd":
+                    if action == "gl":
+                        action = "G-Lined"
+                    elif action == "kl":
+                        action = "K-Lined"
+                    elif action == "zl":
+                        action = "Z-Lined"
+                    elif action == "ql":
+                        action = "Q-Lined"
+                    elif action == "kd":
+                        action = "Killed"
 
-                self.PutModule(str(user) + " (" + str(offender_host) + ")" + " was " + action + " on " + str(time) + ".")
+                    self.PutModule(str(user) + " (" + str(offender_host) + ")" + " was " + action + " on " + str(time) + ".")
+        else:
+            if method == "channel":
+                self.PutModule("No results found for: " + str(user) + " in " + str(channel))
+            else:
+                self.PutModule("No results found for: " + str(user))
 
     ''' OK '''
     def cmd_geoip(self, method, user):
@@ -429,7 +472,15 @@ class aka(znc.Module):
                 cmds = ["sharedchans", "intersect", "hostchans", "nickchans", "nick", "host", "geoip"]
                 if command.split()[1] in cmds:
                     if command.split()[1] == "sharedchans":
-                        self.cmd_trace_sharedchans(list(command.split()[2:]))
+                        cmds = ["hosts", "nicks"]
+                        if command.split()[2] in cmds:
+                            if command.split()[2] == "hosts":
+                                type = "host"
+                            elif command.split()[2] == "nicks":
+                                type = "nick"
+                            self.cmd_trace_sharedchans(type, list(command.split()[3:]))
+                        else:
+                            self.PutModule(command.split()[0] + " " + command.split()[1] + " " + command.split()[2] + " is not a valid command.")
                     elif command.split()[1] == "intersect":
                         self.cmd_trace_intersect(command.split()[2:])
                     elif command.split()[1] == "hostchans":
@@ -443,12 +494,18 @@ class aka(znc.Module):
                 else:
                     self.PutModule("%s is not a valid command." % command)
             elif command.split()[0] == "seen":
-                cmds = ["in", "nick"]
+                cmds = ["in", "nick", "host"]
                 if command.split()[1] in cmds:
-                    if command.split()[1] == "nick":
-                        self.cmd_seen(command.split()[1], None, command.split()[2])
+                    if command.split()[1] == "nick" or command.split()[1] == "host":
+                        self.cmd_seen(command.split()[1], command.split()[1], None, command.split()[2])
                     elif command.split()[1] == "in":
-                        self.cmd_seen(command.split()[1], command.split()[2], command.split()[3])
+                        cmds = ["nick", "host"]
+                        if command.split()[2] in cmds:
+                            self.cmd_seen(command.split()[1], command.split()[2], command.split()[3], command.split()[4])
+                        else:
+                            self.PutModule(command.split()[0] + " " + command.split()[1] + " " + command.split()[2] + " is not a valid command.")
+                    else:
+                        self.PutModule(command.split()[0] + " " + command.split()[1] + " is not a valid command.")
                 else:
                     self.PutModule(command.split()[0] + " " + command.split()[1] + " is not a valid command.")
             elif command.split()[0] == "offenses":
@@ -609,6 +666,22 @@ class aka(znc.Module):
         if exists == False:
             self.c.execute("ALTER TABLE moderated ADD COLUMN op_ident;")
 
+        self.c.execute("PRAGMA table_info(moderated);")
+        exists = False
+        for table in self.c:
+            if str(table[1]) == 'identity':
+                exists = True
+        if exists == True:
+            self.c.execute("BEGIN TRANSACTION")
+            self.c.execute("CREATE TEMPORARY TABLE mod_backup(op_nick, op_host, channel, action, message, offender_nick, offender_host, added, time, offender_ident, op_ident)")
+            self.c.execute("INSERT INTO mod_backup SELECT op_nick, op_host, channel, action, message, offender_nick, offender_host, added, time, offender_ident, op_ident FROM moderated")
+            self.c.execute("DROP TABLE moderated")
+            self.c.execute("CREATE TABLE moderated(op_nick, op_host, channel, action, message, offender_nick, offender_host, added, time, offender_ident, op_ident)")
+            self.c.execute("INSERT INTO moderated SELECT op_nick, op_host, channel, action, message, offender_nick, offender_host, added, time, offender_ident, op_ident FROM mod_backup")
+            self.c.execute("DROP TABLE mod_backup")
+            self.c.execute("COMMIT")
+            self.conn.commit()
+
     ''' OK '''
     def transfer_data(self):
 
@@ -714,52 +787,58 @@ class aka(znc.Module):
 
     ''' OK '''
     def cmd_help(self):
-        self.PutModule("+====================+===========================================+======================================================+")
-        self.PutModule("| Command            | Arguments                                 | Description                                          |")
-        self.PutModule("+=====================+==========================================+======================================================+")
-        self.PutModule("| trace nick         | <nick>                                    | Shows nick change and host history for given nick    |")
-        self.PutModule("+=====================+==========================================+======================================================+")
-        self.PutModule("| trace host         | <host>                                    | Shows nick history for given host                    |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| trace sharedchans  | <nick1> <nick2> ... <nick#>               | Show common channels between a list of users         |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| trace intersect    | <#channel1> <#channel2> ... <#channel#>   | Display users common to a list of channels           |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| trace nickchans    | <nick>                                    | Get all channels a nick has been seen in             |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| offenses nick      | <nick>                                    | Display kick/ban/quiet history for nick              |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| offenses host      | <host>                                    | Display kick/ban/quiet history for host              |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| offenses in nick   | <channel> <nick>                          | Display kick/ban/quiet history for nick in channel   |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| offenses in host   | <channel> <host>                          | Display kick/ban/quiet history for host in channel   |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| seen nick          | <nick>                                    | Last time and where the nick was seen                |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| seen in            | <channel> <nick>                          | Last time and where the nick was seen                |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| geoip host         | <host>                                    | Geolocates host                                      |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| geoip nick         | <nick>                                    | Geolocates host by nick                              |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| add                | <nick> <host> <channel>                   | Manually add a nick/host entry to the database       |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| import             | <url>                                     | Imports user data to DB from valid JSON file url     |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| export nick        | <nick>                                    | Exports nick data to JSON file                       |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| export host        | <host>                                    | Exports host data to JSON file                       |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| config             | <variable> <value>                        | Set configuration variables per network (See README) |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| getconfig          |                                           | Print the current network configuration              |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| save               |                                           | Manually save the latest tracks to disk              |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| stats              |                                           | Print nick and host stats for the network            |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| update             |                                           | Updates aka to latest version                        |")
-        self.PutModule("+--------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| help               |                                           | Print help from the module                           |")
-        self.PutModule("+====================+===========================================+======================================================+")
+        self.PutModule("+==========================+===========================================+======================================================+")
+        self.PutModule("| Command                  | Arguments                                 | Description                                          |")
+        self.PutModule("+==========================+===========================================+======================================================+")
+        self.PutModule("| trace nick               | <nick>                                    | Shows nick change and host history for given nick    |")
+        self.PutModule("+==========================+===========================================+======================================================+")
+        self.PutModule("| trace host               | <host>                                    | Shows nick history for given host                    |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| trace sharedchans nicks  | <nick1> <nick2> ... <nick#>               | Show common channels between a list of nicks         |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| trace sharedchans hosts  | <host1> <host2> ... <host#>               | Show common channels between a list of hosts         |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| trace intersect          | <#channel1> <#channel2> ... <#channel#>   | Display users common to a list of channels           |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| trace nickchans          | <nick>                                    | Get all channels a nick has been seen in             |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| offenses nick            | <nick>                                    | Display kick/ban/quiet history for nick              |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| offenses host            | <host>                                    | Display kick/ban/quiet history for host              |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| offenses in nick         | <channel> <nick>                          | Display kick/ban/quiet history for nick in channel   |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| offenses in host         | <channel> <host>                          | Display kick/ban/quiet history for host in channel   |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| seen nick                | <nick>                                    | Displays last time nick was seen speaking globally   |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| seen host                | <host>                                    | Displays last time host was seen speaking globally   |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| seen in nick             | <#channel> <nick>                         | Displays last time nick was seen speaking in channel |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| seen in host             | <#channel> <host>                         | Displays last time host was seen speaking in channel |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| geoip host               | <host>                                    | Geolocates host                                      |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| geoip nick               | <nick>                                    | Geolocates host by nick                              |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| add                      | <nick> <host> <channel>                   | Manually add a nick/host entry to the database       |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| import                   | <url>                                     | Imports user data to DB from valid JSON file url     |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| export nick              | <nick>                                    | Exports nick data to JSON file                       |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| export host              | <host>                                    | Exports host data to JSON file                       |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| config                   | <variable> <value>                        | Set configuration variables per network (See README) |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| getconfig                |                                           | Print the current network configuration              |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| save                     |                                           | Manually save the latest tracks to disk              |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| stats                    |                                           | Print nick and host stats for the network            |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| update                   |                                           | Updates aka to latest version                        |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| help                     |                                           | Print help from the module                           |")
+        self.PutModule("+==========================+===========================================+======================================================+")
