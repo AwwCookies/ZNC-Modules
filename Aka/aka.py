@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                 #
-#   Last Update: Nov 01, 2015                                     #
+#   Last Update: Nov 02, 2015                                     #
 #   Version: 1.0.5                                                #
 #   Desc: A ZNC Module to track nicks                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -18,8 +18,6 @@ import json
 import collections
 
 import requests
-
-''' SHAREDCHANS HOST '''
 
 DEFAULT_CONFIG = {
     "DEBUG_MODE": False, # 0/1
@@ -317,7 +315,6 @@ class aka(znc.Module):
         if mode == "in":
             query = "SELECT seen, message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(nick) = '" + str(user).lower() + "' AND LOWER(channel) = '" + str(channel).lower() + "') AND LOWER(nick) = '" + str(user).lower() + "' AND LOWER(channel) = '" + str(channel).lower() + "';"
             self.c.execute(query)
-            self.PutModule(query)
             data = self.c.fetchall()
             if len(data) > 0:
                 for row in data:
@@ -327,7 +324,6 @@ class aka(znc.Module):
         elif mode == "nick" or mode == "host":
             query = "SELECT channel, MAX(seen), message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(" + str(mode) + ") = '" + str(user).lower() + "') AND LOWER(" + str(mode) + ") = '" + str(user).lower() + "';"
             self.c.execute(query)
-            self.PutModule(query)
             data = self.c.fetchall()
             if data[0][0] != None:
                 for row in data:
@@ -720,8 +716,8 @@ class aka(znc.Module):
 
             for chan in chans:
                 for user in chans[chan]:
-                        query = "INSERT OR IGNORE INTO users (host, nick, channel) VALUES ('" + str(user[1]) + "','" + str(user[0]) + "','" + str(chan) + "');"
-                        self.c.execute(query)
+                    query = "INSERT OR IGNORE INTO users (host, nick, channel) VALUES ('" + str(user[1]) + "','" + str(user[0]) + "','" + str(chan) + "');"
+                    self.c.execute(query)
                 del user
             del chans[chan]
             self.conn.commit()
