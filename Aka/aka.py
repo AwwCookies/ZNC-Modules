@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                 #
-#   Last Update: Nov 02, 2015                                     #
-#   Version: 1.0.5                                                #
+#   Last Update: Nov 11, 2015                                     #
+#   Version: 1.0.6                                                #
 #   Desc: A ZNC Module to track nicks                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -18,6 +18,14 @@ import json
 import collections
 
 import requests
+
+'''
+FORCED REMOVE MOD
+(Removed by MuffinMedic: lala)
+requested by MuffinMedic (lala))
+
+trace ip
+'''
 
 DEFAULT_CONFIG = {
     "DEBUG_MODE": False, # 0/1
@@ -50,7 +58,7 @@ class aka(znc.Module):
         return True
 
     ''' OK '''
-    def process_user(self, host, nick, identity, channel, message, auto):
+    def process_user(self, host, nick, identity, channel, message, addedWithoutMsg):
         if self.CONFIG.get("DEBUG_MODE", False):
             self.PutModule("DEBUG: Adding %s => %s" % (nick, host))
 
@@ -61,13 +69,13 @@ class aka(znc.Module):
         self.c.execute(query)
         data = self.c.fetchall()
         if len(data) == 0:
-            if auto == True:
+            if addedWithoutMsg == True:
                 query = "INSERT INTO users (host, nick, channel, identity) VALUES ('" + host + "','" + nick + "','" + channel + "','" + identity + "');"
             else:
                 query = "INSERT INTO users VALUES ('" + host + "','" + nick + "','" + channel + "','" + str(datetime.datetime.now()) + "','" + str(message) + "','" + identity + "');"
             self.c.execute(query)
         else:
-            if auto == False:
+            if addedWithoutMsg == False:
                 query = "UPDATE users SET seen = '" + str(datetime.datetime.now()) + "', message = '" + str(message) + "' WHERE LOWER(nick) = '" + nick.lower() + "' AND LOWER(host) = '" + host.lower() + "' AND LOWER(channel) = '" + channel.lower() + "';"
             self.c.execute(query)
         self.conn.commit()
@@ -139,6 +147,10 @@ class aka(znc.Module):
     def OnNick(self, user, new_nick, channels):
         for chan in channels:
             self.process_user(user.GetHost(), new_nick, user.GetIdent(), chan.GetName(), None, True)
+
+    ''' OK '''
+    def OnPrivMsg(self, user, message):
+        self.process_user(user.GetHost(), user.GetNick(), user.GetIdent(), 'PRIVMSG', message, False)
 
     ''' OK '''
     def OnChanMsg(self, user, channel, message):
@@ -313,21 +325,29 @@ class aka(znc.Module):
     ''' OK '''
     def cmd_seen(self, mode, user_type, channel, user):
         if mode == "in":
+            if channel == 'PRIVMSG':
+                chan = 'Private Message'
+            else:
+                chan = channel
             query = "SELECT seen, message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(nick) = '" + str(user).lower() + "' AND LOWER(channel) = '" + str(channel).lower() + "') AND LOWER(nick) = '" + str(user).lower() + "' AND LOWER(channel) = '" + str(channel).lower() + "';"
             self.c.execute(query)
             data = self.c.fetchall()
             if len(data) > 0:
                 for row in data:
-                    self.PutModule(str(user) + " was last seen in " + str(channel) + " at " + str(row[0]) + " saying \"" + str(row[1]) + "\"")
+                    self.PutModule(str(user) + " was last seen in " + str(chan) + " at " + str(row[0]) + " saying \"" + str(row[1]) + "\"")
             else:
-                self.PutModule("No results found for: " + str(user) + " in " + str(channel))
+                self.PutModule("No results found for: " + str(user) + " in " + str(chan))
         elif mode == "nick" or mode == "host":
             query = "SELECT channel, MAX(seen), message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(" + str(mode) + ") = '" + str(user).lower() + "') AND LOWER(" + str(mode) + ") = '" + str(user).lower() + "';"
             self.c.execute(query)
             data = self.c.fetchall()
             if data[0][0] != None:
                 for row in data:
-                    self.PutModule(str(user) + " was last seen in " + str(row[0]) + " at " + str(row[1]) + " saying \"" + str(row[2]) + "\"")
+                    if row[0] == 'PRIVMSG':
+                        chan = 'Private Message'
+                    else:
+                        chan = channel
+                    self.PutModule(str(user) + " was last seen in " + str(chan) + " at " + str(row[1]) + " saying \"" + str(row[2]) + "\"")
             else:
                 self.PutModule("No results found for: " + str(user))
 

@@ -1,5 +1,8 @@
 # Changelog
 
+### Version 1.0.6
+  * Users tracked on Private Message
+
 ### Version 1.0.5
   * Added output if no results found
   * `seen host`, `seen in nick <#channel> <nick>`, and `seen in host <#channel> <host>`
