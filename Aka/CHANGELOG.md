@@ -1,5 +1,9 @@
 # Changelog
 
+### Version 1.0.7
+  * Date/time formatting
+  * Intersect nicks or hosts
+
 ### Version 1.0.6
   * Users tracked on Private Message
 

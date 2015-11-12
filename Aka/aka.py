@@ -1,8 +1,8 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                 #
 #   Last Update: Nov 11, 2015                                     #
-#   Version: 1.0.6                                                #
-#   Desc: A ZNC Module to track nicks                             #
+#   Version: 1.0.7                                                #
+#   Desc: A ZNC Module to track users                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import znc
@@ -25,6 +25,8 @@ FORCED REMOVE MOD
 requested by MuffinMedic (lala))
 
 trace ip
+
+Specify valid options in invalid command output
 '''
 
 DEFAULT_CONFIG = {
@@ -38,7 +40,7 @@ DEFAULT_CONFIG = {
 
 class aka(znc.Module):
     module_types = [znc.CModInfo.NetworkModule]
-    description = "Tracks nicks and hosts, allowing tracing and history viewing"
+    description = "Tracks users, allowing tracing and history viewing of nicks, hosts, and channels"
     wiki_page = "aka"
 
     ''' OK '''
@@ -229,16 +231,21 @@ class aka(znc.Module):
         self.c.execute(query)
         data = self.c.fetchall()
         if len(data) > 0:
+            total = 0
             c2 = self.conn.cursor()
             for row in data:
+                count = 0
                 out = str(nick) + " was also known as: "
                 query = "SELECT host, nick FROM users WHERE LOWER(host) = '" + str(row[0]).lower() + "' GROUP BY nick ORDER BY nick COLLATE NOCASE;"
                 c2.execute(query)
                 for row2 in c2:
                     out += row2[1] + ", "
+                    count += 1
+                total += count
                 out = out[:-2]
                 out += " (" + str(row[0]) + ")"
-                self.PutModule(out)
+                self.PutModule(out + " (" + str(count) + " nicks)")
+            self.PutModule(str(nick) + ": " + str(total) + " total nicks")
         else:
             self.PutModule("No results found for nick: " + str(nick))
 
@@ -248,11 +255,13 @@ class aka(znc.Module):
         self.c.execute(query)
         data = self.c.fetchall()
         if len(data) > 0:
+            count = 0
             out = str(host) + " was known as: "
             for row in data:
                 out += row[0] + ", "
+                count += 1
             out = out[:-2]
-            self.PutModule(out)
+            self.PutModule(out + " (" + str(count) + " nicks)")
         else:
             self.PutModule("No results found for host: " + str(host))
 
@@ -262,10 +271,12 @@ class aka(znc.Module):
         self.c.execute(query)
         data = self.c.fetchall()
         if len(data) > 0:
+            count = 0
             out = str(nick) + " was found in:"
             for chan in data:
                 out += " " + chan[0]
-            self.PutModule(out)
+                count += 1
+            self.PutModule(out + " (" + str(count) + " channels)")
         else:
             self.PutModule("No results found for nick: " + str(nick))
 
@@ -275,10 +286,12 @@ class aka(znc.Module):
         self.c.execute(query)
         data = self.c.fetchall()
         if len(data) > 0:
+            count = 0
             out = str(host) + " was found in:"
             for chan in data:
                 out += " " + chan[0]
-            self.PutModule(out)
+                count += 1
+            self.PutModule(out + " (" + str(count) + " channels)")
         else:
             self.PutModule("No results found for host: " + str(host))
 
@@ -295,17 +308,19 @@ class aka(znc.Module):
         self.c.execute(query)
         data = self.c.fetchall()
         if len(data) > 0:
+            count = 0
             out = "Common channels between" + user_list + ": "
             for chan in data:
                 out += chan[0] + " "
-            self.PutModule(out)
+                count += 1
+            self.PutModule(out + "(" + str(count) + " channels)")
         else:
             self.PutModule("No results found for " + str(user_type) + "s:" + str(user_list))
 
     ''' OK '''
-    def cmd_trace_intersect(self, chans):
+    def cmd_trace_intersect(self, user_type, chans):
         chan_list = ''
-        query = "SELECT DISTINCT nick FROM users WHERE "
+        query = "SELECT DISTINCT " + user_type + " FROM users WHERE "
         for chan in chans:
             query += "LOWER(channel) = '" + str(chan).lower() + "' OR "
             chan_list += " " + chan
@@ -315,10 +330,12 @@ class aka(znc.Module):
         self.c.execute(query)
         data = self.c.fetchall()
         if len(data) > 0:
+            count = 0
             out = "Shared users between" + chan_list + ": "
             for nick in data:
                 out += nick[0] + " "
-            self.PutModule(out)
+                count += 1
+            self.PutModule(out + "(" + str(count) + " " + user_type + "s)")
         else:
             self.PutModule("No results found for channels:" + str(chan_list))
 
@@ -334,7 +351,8 @@ class aka(znc.Module):
             data = self.c.fetchall()
             if len(data) > 0:
                 for row in data:
-                    self.PutModule(str(user) + " was last seen in " + str(chan) + " at " + str(row[0]) + " saying \"" + str(row[1]) + "\"")
+                    days, hours, minutes = self.human_time(row[0])
+                    self.PutModule(str(user) + " was last seen in " + str(chan) + " " + str(days) + " days, " + str(hours) + " hours, " + str(minutes) + " minutes ago" + " saying \"" + str(row[1]) + "\" (" + str(row[0]) + ")")
             else:
                 self.PutModule("No results found for: " + str(user) + " in " + str(chan))
         elif mode == "nick" or mode == "host":
@@ -347,7 +365,8 @@ class aka(znc.Module):
                         chan = 'Private Message'
                     else:
                         chan = channel
-                    self.PutModule(str(user) + " was last seen in " + str(chan) + " at " + str(row[1]) + " saying \"" + str(row[2]) + "\"")
+                    days, hours, minutes = self.human_time(row[1])
+                    self.PutModule(str(user) + " was last seen in " + str(row[0]) + " " + str(days) + " days, " + str(hours) + " hours, " + str(minutes) + " minutes ago" + " saying \"" + str(row[2]) + "\" (" + str(row[1]) + ")")
             else:
                 self.PutModule("No results found for: " + str(user))
 
@@ -379,7 +398,9 @@ class aka(znc.Module):
         self.c.execute(query)
         data = self.c.fetchall()
         if len(data) > 0:
+            count = 0
             for op_nick, op_host, channel, action, message, offender_nick, offender_host, added, time in data:
+                count += 1
                 if user_type == "nick":
                     offender = offender_host
                 elif user_type == "host":
@@ -411,6 +432,11 @@ class aka(znc.Module):
                         action = "Killed"
 
                     self.PutModule(str(user) + " (" + str(offender_host) + ")" + " was " + action + " on " + str(time) + ".")
+
+            if method == "user":
+                self.PutModule(str(user) + ": " + str(count) + " total offenses")
+            elif method == "channel":
+                self.PutModule(str(user) + ": " + str(count) + " total offenses in " + str(channel))
         else:
             if method == "channel":
                 self.PutModule("No results found for: " + str(user) + " in " + str(channel))
@@ -498,7 +524,15 @@ class aka(znc.Module):
                         else:
                             self.PutModule(command.split()[0] + " " + command.split()[1] + " " + command.split()[2] + " is not a valid command.")
                     elif command.split()[1] == "intersect":
-                        self.cmd_trace_intersect(command.split()[2:])
+                        cmds = ["hosts", "nicks"]
+                        if command.split()[2] in cmds:
+                            if command.split()[2] == "hosts":
+                                type = "host"
+                            elif command.split()[2] == "nicks":
+                                type = "nick"
+                            self.cmd_trace_intersect(type, command.split()[3:])
+                        else:
+                            self.PutModule(command.split()[0] + " " + command.split()[1] + " is not a valid command.")
                     elif command.split()[1] == "hostchans":
                         self.cmd_trace_hostchans(command.split()[2])
                     elif command.split()[1] == "nickchans":
@@ -572,6 +606,17 @@ class aka(znc.Module):
                 self.update()
         else:
             self.PutModule("%s is not a valid command." % command)
+
+    ''' OK '''
+    def human_time(self, td):
+        time = td.split('.', 1)[0]
+        then = datetime.datetime.strptime(time, "%Y-%m-%d %H:%M:%S")
+        now = datetime.datetime.now()
+        diff = now - then
+        days = diff.days
+        hours = diff.seconds//3600
+        minutes = (diff.seconds//60)%60
+        return days, hours, minutes
 
     ''' OK '''
     def change_config(self, var_name, value):
@@ -807,14 +852,16 @@ class aka(znc.Module):
         self.PutModule("| Command                  | Arguments                                 | Description                                          |")
         self.PutModule("+==========================+===========================================+======================================================+")
         self.PutModule("| trace nick               | <nick>                                    | Shows nick change and host history for given nick    |")
-        self.PutModule("+==========================+===========================================+======================================================+")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| trace host               | <host>                                    | Shows nick history for given host                    |")
         self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| trace sharedchans nicks  | <nick1> <nick2> ... <nick#>               | Show common channels between a list of nicks         |")
         self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| trace sharedchans hosts  | <host1> <host2> ... <host#>               | Show common channels between a list of hosts         |")
         self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| trace intersect          | <#channel1> <#channel2> ... <#channel#>   | Display users common to a list of channels           |")
+        self.PutModule("| trace intersect nicks    | <#channel1> <#channel2> ... <#channel#>   | Display nicks common to a list of channels           |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| trace intersect hosts    | <#channel1> <#channel2> ... <#channel#>   | Display hosts common to a list of channels           |")
         self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| trace nickchans          | <nick>                                    | Get all channels a nick has been seen in             |")
         self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")

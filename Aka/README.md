@@ -22,7 +22,9 @@ aka must be loaded on each network you wish to use it on
 
 `sharedchans hosts <host1> <host2> ... <host#>` Show common channels between a list of hosts
 
-`intersect <#channel1> <#channel2> ... <#channel#>` Display users common to a list of channels
+`intersect nicks <#channel1> <#channel2> ... <#channel#>` Display nicks common to a list of channels
+
+`intersect hosts <#channel1> <#channel2> ... <#channel#>` Display hosts common to a list of channels
 
 `nickchans <nick>` Get all channels a nick has been seen in
 
