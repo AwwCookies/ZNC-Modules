@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                 #
-#   Last Update: Nov 11, 2015                                     #
+#   Last Update: Nov 13, 2015                                     #
 #   Version: 1.0.7                                                #
 #   Desc: A ZNC Module to track users                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -27,6 +27,8 @@ requested by MuffinMedic (lala))
 trace ip
 
 Specify valid options in invalid command output
+
+Cross ref hosts with nicks for offenses (add mask *!*)
 '''
 
 DEFAULT_CONFIG = {
@@ -496,7 +498,7 @@ class aka(znc.Module):
         """
         Pull the version number from line 4 of this script
         """
-        self.PutModule(open(__file__, 'r').readlines()[3].replace("#", "").strip())
+        self.PutModule(open(__file__, 'r').readlines()[3].replace("#", "").strip() + " (" + open(__file__, 'r').readlines()[2].replace("#", "").strip() +")")
 
     ''' OK '''
     def cmd_stats(self):
@@ -699,10 +701,18 @@ class aka(znc.Module):
     def db_setup(self):
         self.conn = sqlite3.connect(self.GetSavePath() + "/aka." + self.NETWORK + ".db")
         self.c = self.conn.cursor()
-        self.c.execute("create table if not exists users (host, nick, channel, seen, UNIQUE(host COLLATE NOCASE, nick COLLATE NOCASE, channel COLLATE NOCASE));")
+        self.c.execute("create table if not exists users (host, nick, channel, seen, identity, UNIQUE(host COLLATE NOCASE, nick COLLATE NOCASE, channel COLLATE NOCASE));")
         self.c.execute("create table if not exists moderated (op_nick, op_host, channel, action, message, offender_nick, offender_host, offender_ident, added, time)")
 
         ''' ADDITIONAL TABLES '''
+        self.c.execute("PRAGMA table_info(users);")
+        exists = False
+        for table in self.c:
+            if str(table[1]) == 'identity':
+                exists = True
+        if exists == False:
+            self.c.execute("ALTER TABLE users ADD COLUMN identity;")
+
         self.c.execute("PRAGMA table_info(users);")
         exists = False
         for table in self.c:
@@ -771,6 +781,10 @@ class aka(znc.Module):
             self.CONFIG = new_config
             with open(self.GetSavePath() + "/config.json", 'w') as f:
                 f.write(json.dumps(new_config, sort_keys=True, indent=4))
+        elif not os.path.exists(self.GetSavePath() + "/config.json"):
+            self.CONFIG = DEFAULT_CONFIG
+            with open(self.GetSavePath() + "/config.json", 'w') as f:
+                f.write(json.dumps(self.CONFIG, sort_keys=True, indent=4))
 
         if os.path.exists(self.GetSavePath() + "/hosts.json") and os.path.exists (self.GetSavePath() + "/hosts.json"):
 
