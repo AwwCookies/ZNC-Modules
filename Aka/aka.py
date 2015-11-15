@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                 #
-#   Last Update: Nov 14, 2015                                     #
+#   Last Update: Nov 15, 2015                                     #
 #   Version: 1.0.8                                                #
 #   Desc: A ZNC Module to track users                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -97,12 +97,6 @@ class aka(znc.Module):
 
     ''' OK '''
     def OnRaw(self, message):
-        if self.get_raw_kicked_host:
-            self.get_raw_kicked_host = False
-            self.raw_hold["offender_nick"] = str(message.s).split()[7]
-            self.raw_hold["offender_host"] = str(message.s).split()[5]
-            self.raw_hold["offender_ident"] = str(message.s).split()[4]
-            self.on_kick_process(self.raw_hold["op_nick"], self.raw_hold["op_host"], self.raw_hold["op_ident"], self.raw_hold["channel"], self.raw_hold["offender_nick"], self.raw_hold["offender_host"], self.raw_hold["offender_ident"], self.raw_hold["message"])
         if str(message.s).split()[1] == "352": # on WHO
             host = str(message.s).split()[5]
             nick = str(message.s).split()[7]
@@ -183,15 +177,11 @@ class aka(znc.Module):
             self.process_moderated(None, None, None, None, "kd", message, user.GetNick(), user.GetHost(), user.GetIdent(), None)
 
     ''' OK '''
-    def OnKick(self, op, nick, channel, message):
-        self.raw_hold["op_nick"] = op.GetNick()
-        self.raw_hold["op_host"] = op.GetHost()
-        self.raw_hold["op_ident"] = op.GetIdent()
-        self.raw_hold["channel"] = channel.GetName()
-        self.raw_hold["message"] = message
-
-        self.get_raw_kicked_host = True
-        self.PutIRC("WHO " + nick)
+    def OnKick(self, op, offender_nick, channel, message):
+        query = "SELECT host, identity, MAX(seen) FROM users WHERE nick = '" + offender_nick + "'"
+        self.c.execute(query)
+        for row in self.c:
+            self.on_kick_process(op.GetNick(),op.GetHost(),op.GetIdent(),channel.GetName(),offender_nick,row[0],row[1],message)
 
     ''' OK '''
     def on_kick_process(self, op_nick, op_host, op_ident, channel, offender_nick, offender_host, offender_ident, message):
@@ -719,7 +709,7 @@ class aka(znc.Module):
         self.conn = sqlite3.connect(self.GetSavePath() + "/aka." + self.NETWORK + ".db")
         self.c = self.conn.cursor()
         self.c.execute("create table if not exists users (host, nick, channel, seen, identity, UNIQUE(host COLLATE NOCASE, nick COLLATE NOCASE, channel COLLATE NOCASE));")
-        self.c.execute("create table if not exists moderated (op_nick, op_host, channel, action, message, offender_nick, offender_host, offender_ident, added, time)")
+        self.c.execute("create table if not exists moderated (op_nick, op_host, channel, action, message, offender_nick, offender_host, added, time, offender_ident, op_ident)")
 
         ''' ADDITIONAL TABLES '''
         self.c.execute("PRAGMA table_info(users);")
