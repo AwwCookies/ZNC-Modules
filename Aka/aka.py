@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                 #
 #   Last Update: Nov 14, 2015                                     #
-#   Version: 1.0.7                                                #
+#   Version: 1.0.8                                                #
 #   Desc: A ZNC Module to track users                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -97,9 +97,6 @@ class aka(znc.Module):
 
     ''' OK '''
     def OnRaw(self, message):
-        if self.get_raw_geoip_host:
-            self.get_raw_geoip_host = False
-            self.geoip_process(str(message.s).split()[5], str(message.s).split()[7])
         if self.get_raw_kicked_host:
             self.get_raw_kicked_host = False
             self.raw_hold["offender_nick"] = str(message.s).split()[7]
@@ -228,6 +225,19 @@ class aka(znc.Module):
                     self.PutModule(str(arg).split('@')[0] + " (" + str(arg).split('@')[1] + ") has been unquieted in " + str(channel) + " by " + str(op))
 
     ''' OK '''
+    def cmd_all(self, user, type):
+        if type == "nick":
+            self.cmd_trace_nick(user)
+            self.cmd_trace_nickchans(user)
+        elif type == "host":
+            self.cmd_trace_host(user)
+            self.cmd_trace_hostchans(user)
+        self.cmd_offenses(type, type, user, None)
+        self.cmd_geoip(type, user)
+        self.cmd_seen(type, type, None, user)
+        self.PutModule("Trace on " + str(type) + " " + str(user) + " complete.")
+
+    ''' OK '''
     def cmd_trace_nick(self, nick):
         query = "SELECT host, nick FROM users WHERE LOWER(nick) = '" + str(nick).lower() + "' GROUP BY host ORDER BY host;"
         self.c.execute(query)
@@ -342,8 +352,8 @@ class aka(znc.Module):
             self.PutModule("No common " + str(user_type) + "s found in channels:" + str(chan_list))
 
     ''' OK '''
-    def cmd_seen(self, mode, user_type, channel, user):
-        if mode == "in":
+    def cmd_seen(self, method, user_type, channel, user):
+        if method == "in":
             if channel == 'PRIVMSG':
                 chan = 'Private Message'
             else:
@@ -357,8 +367,8 @@ class aka(znc.Module):
                     self.PutModule(str(user) + " was last seen in " + str(chan) + " " + str(days) + " days, " + str(hours) + " hours, " + str(minutes) + " minutes ago" + " saying \"" + str(row[1]) + "\" (" + str(row[0]) + ")")
             else:
                 self.PutModule(str(user_type).title() + " " + str(user) + " has not been seen in " + str(chan))
-        elif mode == "nick" or mode == "host":
-            query = "SELECT channel, MAX(seen), message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(" + str(mode) + ") = '" + str(user).lower() + "') AND LOWER(" + str(mode) + ") = '" + str(user).lower() + "';"
+        elif method == "nick" or method == "host":
+            query = "SELECT channel, MAX(seen), message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(" + str(method) + ") = '" + str(user).lower() + "') AND LOWER(" + str(method) + ") = '" + str(user).lower() + "';"
             self.c.execute(query)
             data = self.c.fetchall()
             if data[0][0] != None:
@@ -448,13 +458,16 @@ class aka(znc.Module):
     ''' OK '''
     def cmd_geoip(self, method, user):
         if method == "host":
-            self.geoip_process(user, user)
+            self.geoip_process(user, user, "host")
         elif method == "nick":
             self.get_raw_geoip_host = True
-            self.PutIRC("WHO " + user)
+            query = "SELECT host, MAX(seen) FROM users WHERE nick = '" + user + "'"
+            self.c.execute(query)
+            for row in self.c:
+                self.geoip_process(row[0], user, "nick")
 
     ''' OK '''
-    def geoip_process(self, host, nick):
+    def geoip_process(self, host, nick, method):
         ipv4 = '(?:[0-9]{1,3}(\.|\-)){3}[0-9]{1,3}'
         ipv6 = '^((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4}))*::((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4}))*|((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4})){7}$'
         rdns = '^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$'
@@ -470,9 +483,9 @@ class aka(znc.Module):
             if loc_json["status"] != "fail":
                 self.PutModule(nick + " is located in " + loc_json["city"] + ", " + loc_json["regionName"] + ", " + loc_json["country"] + " (" + str(loc_json["lat"]) + ", " + str(loc_json["lon"]) + ") / Timezone: " + loc_json["timezone"] + " / Proxy: " + str(loc_json["proxy"]) + " / Mobile: " + str(loc_json["mobile"]) + " / IP: " + loc_json["query"] + " " + loc_json["reverse"])
             else:
-                self.PutModule("Unable to geolocate " + host + ". (Reason: " + loc_json["message"] + ")")
+                self.PutModule("Unable to geolocate " + str(method) + " " + str(nick) + ". (Reason: " + loc_json["message"] + ")")
         elif host == "of":
-            self.PutModule("User does not exist.")
+            self.PutModule(str(method).title() + " " + str(name) + " is not currently online.")
         else:
             self.PutModule("Invalid host for geolocation (" + host + ")")
 
@@ -510,8 +523,12 @@ class aka(znc.Module):
     ''' OK '''
     def OnModCommand(self, command):
         # Valid Commands
-        cmds = ["trace", "seen", "offenses", "geoip", "help", "config", "getconfig", "info", "add", "import", "export", "version", "stats", "update"]
+        cmds = ["all", "trace", "seen", "offenses", "geoip", "help", "config", "getconfig", "info", "add", "import", "export", "version", "stats", "update"]
         if command.split()[0] in cmds:
+            if command.split()[0] == "all":
+                cmds = ["nick", "host"]
+                if command.split()[1] in cmds:
+                    self.cmd_all(command.split()[2], command.split()[1])
             if command.split()[0] == "trace":
                 cmds = ["sharedchans", "intersect", "hostchans", "nickchans", "nick", "host", "geoip"]
                 if command.split()[1] in cmds:
@@ -865,6 +882,9 @@ class aka(znc.Module):
         self.PutModule("+==========================+===========================================+======================================================+")
         self.PutModule("| Command                  | Arguments                                 | Description                                          |")
         self.PutModule("+==========================+===========================================+======================================================+")
+        self.PutModule("| all nick                 | <host>                                    | Perform complete lookup on nick                      |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")        self.PutModule("| all host                 | <host>                                    | Perform complete lookup on host                      |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| trace nick               | <nick>                                    | Shows nick change and host history for given nick    |")
         self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| trace host               | <host>                                    | Shows nick history for given host                    |")

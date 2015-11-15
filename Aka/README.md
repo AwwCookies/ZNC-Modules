@@ -14,6 +14,12 @@ aka must be loaded on each network you wish to use it on
 
 ## Commands
 
+### Aggregate Commands
+
+`all nick <nick>` Perform complete lookup on nick (trace, channels, offenses, geoip, seen)
+
+`all host <host>` Perform complete lookup on host (trace, channels, offenses, geoip, seen)
+
 ### `trace` Commands
 
 `nick <nick>` Shows nick change and host history for given nick

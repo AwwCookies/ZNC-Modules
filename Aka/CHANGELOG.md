@@ -1,5 +1,9 @@
 # Changelog
 
+### Version 1.0.8
+  * `all` command to run complete trace on nick or host
+  * More reliable `geoip nick` functionality
+
 ### Version 1.0.7
   * Date/time formatting
   * Intersect nicks or hosts
