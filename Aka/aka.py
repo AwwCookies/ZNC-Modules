@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                 #
-#   Last Update: Nov 13, 2015                                     #
+#   Last Update: Nov 14, 2015                                     #
 #   Version: 1.0.7                                                #
 #   Desc: A ZNC Module to track users                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -28,7 +28,7 @@ trace ip
 
 Specify valid options in invalid command output
 
-Cross ref hosts with nicks for offenses (add mask *!*)
+Cross ref hosts with nicks for offenses (add mask *!*) = ref ban host with nick
 '''
 
 DEFAULT_CONFIG = {
@@ -249,7 +249,7 @@ class aka(znc.Module):
                 self.PutModule(out + " (" + str(count) + " nicks)")
             self.PutModule(str(nick) + ": " + str(total) + " total nicks")
         else:
-            self.PutModule("No results found for nick: " + str(nick))
+            self.PutModule("No history found for nick: " + str(nick))
 
     ''' OK '''
     def cmd_trace_host(self, host):
@@ -265,7 +265,7 @@ class aka(znc.Module):
             out = out[:-2]
             self.PutModule(out + " (" + str(count) + " nicks)")
         else:
-            self.PutModule("No results found for host: " + str(host))
+            self.PutModule("No history found for host: " + str(host))
 
     ''' OK '''
     def cmd_trace_nickchans(self, nick):
@@ -280,7 +280,7 @@ class aka(znc.Module):
                 count += 1
             self.PutModule(out + " (" + str(count) + " channels)")
         else:
-            self.PutModule("No results found for nick: " + str(nick))
+            self.PutModule("No channels found for nick: " + str(nick))
 
     ''' OK '''
     def cmd_trace_hostchans(self, host):
@@ -295,7 +295,7 @@ class aka(znc.Module):
                 count += 1
             self.PutModule(out + " (" + str(count) + " channels)")
         else:
-            self.PutModule("No results found for host: " + str(host))
+            self.PutModule("No channels found for host: " + str(host))
 
     ''' OK '''
     def cmd_trace_sharedchans(self, user_type, users):
@@ -317,7 +317,7 @@ class aka(znc.Module):
                 count += 1
             self.PutModule(out + "(" + str(count) + " channels)")
         else:
-            self.PutModule("No results found for " + str(user_type) + "s:" + str(user_list))
+            self.PutModule("No shared channels found for " + str(user_type) + "s:" + str(user_list))
 
     ''' OK '''
     def cmd_trace_intersect(self, user_type, chans):
@@ -339,7 +339,7 @@ class aka(znc.Module):
                 count += 1
             self.PutModule(out + "(" + str(count) + " " + user_type + "s)")
         else:
-            self.PutModule("No results found for channels:" + str(chan_list))
+            self.PutModule("No common " + str(user_type) + "s found in channels:" + str(chan_list))
 
     ''' OK '''
     def cmd_seen(self, mode, user_type, channel, user):
@@ -353,10 +353,10 @@ class aka(znc.Module):
             data = self.c.fetchall()
             if len(data) > 0:
                 for row in data:
-                    days, hours, minutes = self.human_time(row[0])
+                    days, hours, minutes = self.dt_diff(row[0])
                     self.PutModule(str(user) + " was last seen in " + str(chan) + " " + str(days) + " days, " + str(hours) + " hours, " + str(minutes) + " minutes ago" + " saying \"" + str(row[1]) + "\" (" + str(row[0]) + ")")
             else:
-                self.PutModule("No results found for: " + str(user) + " in " + str(chan))
+                self.PutModule(str(user_type).title() + " " + str(user) + " has not been seen in " + str(chan))
         elif mode == "nick" or mode == "host":
             query = "SELECT channel, MAX(seen), message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(" + str(mode) + ") = '" + str(user).lower() + "') AND LOWER(" + str(mode) + ") = '" + str(user).lower() + "';"
             self.c.execute(query)
@@ -367,10 +367,10 @@ class aka(znc.Module):
                         chan = 'Private Message'
                     else:
                         chan = channel
-                    days, hours, minutes = self.human_time(row[1])
+                    days, hours, minutes = self.dt_diff(row[1])
                     self.PutModule(str(user) + " was last seen in " + str(row[0]) + " " + str(days) + " days, " + str(hours) + " hours, " + str(minutes) + " minutes ago" + " saying \"" + str(row[2]) + "\" (" + str(row[1]) + ")")
             else:
-                self.PutModule("No results found for: " + str(user))
+                self.PutModule(str(user_type).title() + " " + str(user) + " has not been seen.")
 
     ''' OK '''
     def cmd_offenses(self, method, user_type, user, channel):
@@ -441,9 +441,9 @@ class aka(znc.Module):
                 self.PutModule(str(user) + ": " + str(count) + " total offenses in " + str(channel))
         else:
             if method == "channel":
-                self.PutModule("No results found for: " + str(user) + " in " + str(channel))
+                self.PutModule("No offenses found for " + str(user_type) + ": " + str(user) + " in " + str(channel))
             else:
-                self.PutModule("No results found for: " + str(user))
+                self.PutModule("No offenses found for " + str(user_type) + ": " + str(user))
 
     ''' OK '''
     def cmd_geoip(self, method, user):
@@ -610,7 +610,7 @@ class aka(znc.Module):
             self.PutModule("%s is not a valid command." % command)
 
     ''' OK '''
-    def human_time(self, td):
+    def dt_diff(self, td):
         time = td.split('.', 1)[0]
         then = datetime.datetime.strptime(time, "%Y-%m-%d %H:%M:%S")
         now = datetime.datetime.now()
