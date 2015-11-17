@@ -19,7 +19,7 @@ import collections
 
 import requests
 
-version = '1.0.9b1'
+version = '1.0.9'
 updated = "Nov 16, 2015"
 
 DEFAULT_CONFIG = {
