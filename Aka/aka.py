@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                 #
-#   Last Update: Nov 16, 2015                                     #
+#   Last Update: Nov 17, 2015                                     #
 #   Version: 1.0.9                                                #
 #   Desc: A ZNC Module to track users                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -20,7 +20,7 @@ import collections
 import requests
 
 version = '1.0.9'
-updated = "Nov 16, 2015"
+updated = "Nov 17, 2015"
 
 DEFAULT_CONFIG = {
     "DEBUG_MODE": False, # 0/1
@@ -240,6 +240,7 @@ class aka(znc.Module):
         data = self.c.fetchall()
         if len(data) > 0:
             total = 0
+            host_count = 0
             c2 = self.conn.cursor()
             for row in data:
                 count = 0
@@ -253,7 +254,9 @@ class aka(znc.Module):
                 out = out[:-2]
                 out += " (%s)" % row[0]
                 self.PutModule("%s (%s nicks)" % (out, count))
-            self.PutModule("%s: %s total nicks" % (nick, total))
+                host_count += 1
+            if host_count > 1:
+                self.PutModule("%s: %s total nicks" % (nick, total))
         else:
             self.PutModule("No history found for nick: %s" % nick)
 
@@ -269,7 +272,7 @@ class aka(znc.Module):
                 out += "%s, " % row[0]
                 count += 1
             out = out[:-2]
-            self.PutModule("%s (%s nicks)" % (out, count))
+            self.PutModule("Host %s (%s nicks)" % (out, count))
         else:
             self.PutModule("No history found for host: %s" % host)
 
