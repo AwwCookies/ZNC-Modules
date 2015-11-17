@@ -32,9 +32,9 @@ aka must be loaded on each network you wish to use it on
 
 `intersect hosts <#channel1> <#channel2> ... <#channel#>` Display hosts common to a list of channels
 
-`nickchans <nick>` Get all channels a nick has been seen in
+`channels nick <nick>` Get all channels a nick has been seen in
 
-`hostchans <host>` Get all channels a host has been seen in
+`channels host <host>` Get all channels a host has been seen in
 
 ### Moderation History Commands
 

@@ -1,4 +1,19 @@
+#### Upcoming changes
+  * Moderation log for forced removal from channel
+  * DNS lookup for valid hosts (maybe)
+  * Lookup all nicks for given host in offenses and all hosts for given nick
+
 # Changelog
+
+### Version 1.0.9
+  * Display valid output options on invalid command
+  * Process all channels join load
+  * Process all users in channel on join
+  * Better string processing
+  * `seen in host` fix
+  * Clarified output
+  * Improved `geoip`
+  * `trace nickchans` and `trace hostchans` merged into `trace channels`
 
 ### Version 1.0.8
   * `all` command to run complete trace on nick or host

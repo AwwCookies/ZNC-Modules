@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                 #
-#   Last Update: Nov 15, 2015                                     #
-#   Version: 1.0.8                                                #
+#   Last Update: Nov 16, 2015                                     #
+#   Version: 1.0.9                                                #
 #   Desc: A ZNC Module to track users                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -19,17 +19,8 @@ import collections
 
 import requests
 
-'''
-FORCED REMOVE MOD
-(Removed by MuffinMedic: lala)
-requested by MuffinMedic (lala))
-
-trace ip
-
-Specify valid options in invalid command output
-
-Cross ref hosts with nicks for offenses (add mask *!*) = ref ban host with nick
-'''
+version = '1.0.9b1'
+updated = "Nov 16, 2015"
 
 DEFAULT_CONFIG = {
     "DEBUG_MODE": False, # 0/1
@@ -45,7 +36,7 @@ class aka(znc.Module):
     description = "Tracks users, allowing tracing and history viewing of nicks, hosts, and channels"
     wiki_page = "aka"
 
-    ''' OK '''
+    ''' PROCESS DATA '''
     def OnLoad(self, args, message):
 
         self.get_raw_kicked_host = False
@@ -59,6 +50,8 @@ class aka(znc.Module):
 
         self.transfer_data()
 
+        # self.process_channels()
+
         return True
 
     ''' OK '''
@@ -68,19 +61,19 @@ class aka(znc.Module):
 
         message = str(message).replace("'","''")
 
-        query = "SELECT * FROM users WHERE LOWER(nick) = '" + nick.lower() + "' AND LOWER(host) = '" + host.lower() + "' AND LOWER(channel) = '" + channel.lower() + "';"
+        query = "SELECT * FROM users WHERE LOWER(nick) = '%s' AND LOWER(host) = '%s' AND LOWER(channel) = '%s';" % (nick.lower(), host.lower(), channel.lower())
 
         self.c.execute(query)
         data = self.c.fetchall()
         if len(data) == 0:
             if addedWithoutMsg == True:
-                query = "INSERT INTO users (host, nick, channel, identity) VALUES ('" + host + "','" + nick + "','" + channel + "','" + identity + "');"
+                query = "INSERT INTO users (host, nick, channel, identity) VALUES ('%s','%s','%s','%s');" % (host, nick, channel, identity)
             else:
-                query = "INSERT INTO users VALUES ('" + host + "','" + nick + "','" + channel + "','" + str(datetime.datetime.now()) + "','" + str(message) + "','" + identity + "');"
+                query = "INSERT INTO users VALUES ('%s','%s','%s','%s','%s','%s');" % (host, nick, channel, datetime.datetime.now(), message, identity)
             self.c.execute(query)
         else:
             if addedWithoutMsg == False:
-                query = "UPDATE users SET seen = '" + str(datetime.datetime.now()) + "', message = '" + str(message) + "' WHERE LOWER(nick) = '" + nick.lower() + "' AND LOWER(host) = '" + host.lower() + "' AND LOWER(channel) = '" + channel.lower() + "';"
+                query = "UPDATE users SET seen = '%s', message = '%s' WHERE LOWER(nick) = '%s' AND LOWER(host) = '%s' AND LOWER(channel) = '%s';" % (datetime.datetime.now(), message, nick.lower(), host.lower(), channel.lower())
             self.c.execute(query)
         self.conn.commit()
 
@@ -91,9 +84,15 @@ class aka(znc.Module):
 
         message = str(message).replace("'","''")
 
-        query = "INSERT INTO moderated VALUES('" + str(op_nick) + "','" + str(op_host) + "','" + str(channel) + "','" + str(action) + "','" + str(message) + "','" + str(offender_nick) + "','" + str(offender_host) + "','" + str(added) + "','" + str(datetime.datetime.now()) + "','" + str(offender_ident) + "','" + str(op_ident) + "');"
+        query = "INSERT INTO moderated VALUES('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s');" % (op_nick, op_host, channel, action, message, offender_nick, offender_host, added, datetime.datetime.now(), offender_ident, op_ident)
         self.c.execute(query)
         self.conn.commit()
+
+    ''' OK '''
+    def process_channels(self):
+        chans = self.GetNetwork().GetChans()
+        for chan in chans:
+            self.PutIRC("WHO %s" % chan)
 
     ''' OK '''
     def OnRaw(self, message):
@@ -113,6 +112,11 @@ class aka(znc.Module):
             host = str(message.s).split()[5]
             nick = str(message.s).split()[3]
             self.process_user(host, nick, ident, channel, None, True)
+        elif str(message.s).split()[1] == "JOIN":
+            join_nick = (str(message).split('!')[0])[1:]
+            curr_nick = self.GetNetwork().GetIRCNick().GetNick()
+            if join_nick == curr_nick:
+                self.PutIRC("WHO " + str(message.s).split()[2])
 
         self.raw_hold = {}
 
@@ -124,14 +128,14 @@ class aka(znc.Module):
             if user.GetNick() in self.TIMEOUTS:
                 diff = datetime.datetime.now() - self.TIMEOUTS[user.GetNick()]
                 if diff.total_seconds() > self.CONFIG["NOTIFY_ON_JOIN_TIMEOUT"]:
-                    self.PutModule(user.GetNick() + " (" + user.GetHost() + ")" + " has joined " + channel.GetName())
+                    self.PutModule("%s (%s) has joined %s" % (user.GetNick(), user.GetHost(), channel.GetName()))
                     if self.CONFIG["NOTIFY_DEFAULT_MODE"] == "nick":
                         self.cmd_trace_nick(user.GetNick())
                     elif self.CONFIG["NOTIFY_DEFAULT_MODE"] == "host":
                         self.cmd_trace_host(user.GetHost())
                     self.TIMEOUTS[user.GetNick()] = datetime.datetime.now()
             else:
-                self.PutModule(user.GetNick() + " (" + user.GetHost() + ")" + " has joined " + channel.GetName())
+                self.PutModule("%s (%s) has joined %s" % (user.GetNick(), user.GetHost(), channel.GetName()))
                 if self.CONFIG["NOTIFY_DEFAULT_MODE"] == "nick":
                     self.cmd_trace_nick(user.GetNick())
                 elif self.CONFIG["NOTIFY_DEFAULT_MODE"] == "host":
@@ -178,16 +182,16 @@ class aka(znc.Module):
 
     ''' OK '''
     def OnKick(self, op, offender_nick, channel, message):
-        query = "SELECT host, identity, MAX(seen) FROM users WHERE nick = '" + offender_nick + "'"
+        query = "SELECT host, identity, MAX(seen) FROM users WHERE nick = '%s'" % offender_nick
         self.c.execute(query)
         for row in self.c:
-            self.on_kick_process(op.GetNick(),op.GetHost(),op.GetIdent(),channel.GetName(),offender_nick,row[0],row[1],message)
+            self.on_kick_process(op.GetNick(), op.GetHost(), op.GetIdent(), channel.GetName(), offender_nick, row[0], row[1], message)
 
     ''' OK '''
     def on_kick_process(self, op_nick, op_host, op_ident, channel, offender_nick, offender_host, offender_ident, message):
         self.process_moderated(op_nick, op_host, op_ident, channel, 'k', message, offender_nick, offender_host, offender_ident, None)
         if self.CONFIG.get("NOTIFY_ON_MODERATED", True):
-            self.PutModule(str(offender_nick) + " (" + str(offender_host) + ") " + " has been kicked from " + str(channel) + " by " + str(op_nick) + " (" + str(op_host) + "). Reason: " + str(message))
+            self.PutModule("%s (%s) has been kicked from %s by %s (%s). Reason: %s" % (offender_nick, offender_host, channel, op_nick, op_host, message))
 
     ''' OK '''
     def OnMode(self, op, channel, mode, arg, added, nochange):
@@ -201,18 +205,20 @@ class aka(znc.Module):
             self.process_moderated(op.GetNick(), op.GetHost(), op.GetIdent(), channel, mode, None, str(arg).split('!')[0], str(arg).split('@')[1], str((arg).split('@')[0]).split('!')[1], added)
 
         if (self.CONFIG["NOTIFY_ON_MODE"] == True and self.CONFIG["NOTIFY_ON_MODERATED"] == False) or (self.CONFIG["NOTIFY_ON_MODE"] == True and self.CONFIG["NOTIFY_ON_MODERATED"] == True and mode != 'b' and mode != 'q'):
-            self.PutModule(str(op) + " has set mode " + str(char) + str(mode) + " " + str(arg) + " in " + str(channel))
+            self.PutModule("%s has set mode %s%s %sin %s" % (op, char, mode, arg, channel))
         elif self.CONFIG.get("NOTIFY_ON_MODERATED", True) and (mode == 'b' or mode == 'q'):
             if added:
                 if mode == 'b':
-                    self.PutModule(str(arg).split('@')[0] + " (" + str(arg).split('@')[1] + ") has been banned from " + str(channel) + " by " + str(op) + ". Reason: " + str(arg))
+                    mode = 'banned'
                 elif mode =='q':
-                    self.PutModule(str(arg).split('@')[0] + " (" + str(arg).split('@')[1] + ") has been quieted in " + str(channel) + " by " + str(op) + ". Reason: " + str(arg))
+                    mode = 'quieted'
+                self.PutModule("%s (%s) has been %s in %s by %s. Reason: %s" % (arg.split('@')[0], arg.split('@')[1], mode, channel, op, arg))
             else:
                 if mode == 'b':
-                    self.PutModule(str(arg).split('@')[0] + " (" + str(arg).split('@')[1] + ") has been unbanned from " + str(channel) + " by " + str(op))
+                    mode = 'banned'
                 elif mode =='q':
-                    self.PutModule(str(arg).split('@')[0] + " (" + str(arg).split('@')[1] + ") has been unquieted in " + str(channel) + " by " + str(op))
+                    mode = 'quieted'
+                self.PutModule("%s (%s) has been un%s in %s by %s." % (arg.split('@')[0], arg.split('@')[1], mode, channel, op))
 
     ''' OK '''
     def cmd_all(self, user, type):
@@ -225,11 +231,11 @@ class aka(znc.Module):
         self.cmd_offenses(type, type, user, None)
         self.cmd_geoip(type, user)
         self.cmd_seen(type, type, None, user)
-        self.PutModule("Trace on " + str(type) + " " + str(user) + " complete.")
+        self.PutModule("Trace on %s %s complete." % (type, user))
 
     ''' OK '''
     def cmd_trace_nick(self, nick):
-        query = "SELECT host, nick FROM users WHERE LOWER(nick) = '" + str(nick).lower() + "' GROUP BY host ORDER BY host;"
+        query = "SELECT host, nick FROM users WHERE LOWER(nick) = '%s' GROUP BY host ORDER BY host;" % nick.lower()
         self.c.execute(query)
         data = self.c.fetchall()
         if len(data) > 0:
@@ -237,109 +243,94 @@ class aka(znc.Module):
             c2 = self.conn.cursor()
             for row in data:
                 count = 0
-                out = str(nick) + " was also known as: "
-                query = "SELECT host, nick FROM users WHERE LOWER(host) = '" + str(row[0]).lower() + "' GROUP BY nick ORDER BY nick COLLATE NOCASE;"
+                out = "%s was also known as: " % nick
+                query = "SELECT host, nick FROM users WHERE LOWER(host) = '%s' GROUP BY nick ORDER BY nick COLLATE NOCASE;" % row[0].lower()
                 c2.execute(query)
                 for row2 in c2:
-                    out += row2[1] + ", "
+                    out += "%s, " % row2[1]
                     count += 1
                 total += count
                 out = out[:-2]
-                out += " (" + str(row[0]) + ")"
-                self.PutModule(out + " (" + str(count) + " nicks)")
-            self.PutModule(str(nick) + ": " + str(total) + " total nicks")
+                out += " (%s)" % row[0]
+                self.PutModule("%s (%s nicks)" % (out, count))
+            self.PutModule("%s: %s total nicks" % (nick, total))
         else:
-            self.PutModule("No history found for nick: " + str(nick))
+            self.PutModule("No history found for nick: %s" % nick)
 
     ''' OK '''
     def cmd_trace_host(self, host):
-        query = "SELECT nick, host FROM users WHERE LOWER(host) = '" + str(host).lower() + "' GROUP BY nick ORDER BY nick COLLATE NOCASE;"
+        query = "SELECT nick, host FROM users WHERE LOWER(host) = '%s' GROUP BY nick ORDER BY nick COLLATE NOCASE;" % host.lower()
         self.c.execute(query)
         data = self.c.fetchall()
         if len(data) > 0:
             count = 0
-            out = str(host) + " was known as: "
+            out = "%s was known as: " % host
             for row in data:
-                out += row[0] + ", "
+                out += "%s, " % row[0]
                 count += 1
             out = out[:-2]
-            self.PutModule(out + " (" + str(count) + " nicks)")
+            self.PutModule("%s (%s nicks)" % (out, count))
         else:
-            self.PutModule("No history found for host: " + str(host))
+            self.PutModule("No history found for host: %s" % host)
 
     ''' OK '''
-    def cmd_trace_nickchans(self, nick):
-        query = "SELECT DISTINCT channel FROM users WHERE LOWER(nick)  = '" + str(nick).lower() + "' AND channel IS NOT NULL ORDER BY channel;"
+    def cmd_trace_channels(self, user_type, user):
+        query = "SELECT DISTINCT channel FROM users WHERE LOWER(%s)  = '%s' AND channel IS NOT NULL ORDER BY channel;" % (user_type, user.lower())
         self.c.execute(query)
         data = self.c.fetchall()
         if len(data) > 0:
             count = 0
-            out = str(nick) + " was found in:"
+            out = "%s was found in:" % user
             for chan in data:
-                out += " " + chan[0]
+                out += " %s" % chan[0]
                 count += 1
-            self.PutModule(out + " (" + str(count) + " channels)")
+            self.PutModule("%s (%s channels)" % (out, count))
         else:
-            self.PutModule("No channels found for nick: " + str(nick))
-
-    ''' OK '''
-    def cmd_trace_hostchans(self, host):
-        query = "SELECT DISTINCT channel FROM users WHERE LOWER(host)  = '" + str(host).lower() + "' AND channel IS NOT NULL ORDER BY channel;"
-        self.c.execute(query)
-        data = self.c.fetchall()
-        if len(data) > 0:
-            count = 0
-            out = str(host) + " was found in:"
-            for chan in data:
-                out += " " + chan[0]
-                count += 1
-            self.PutModule(out + " (" + str(count) + " channels)")
-        else:
-            self.PutModule("No channels found for host: " + str(host))
+            self.PutModule("No channels found for %s: %s" % (user_type, user))
 
     ''' OK '''
     def cmd_trace_sharedchans(self, user_type, users):
         user_list = ''
         query = "SELECT DISTINCT channel FROM users WHERE ("
         for user in users:
-            query += "LOWER(" + str(user_type) + ") = '" + str(user).lower() + "' OR "
-            user_list += " " + user
+            query += "LOWER(%s) = '%s' OR " % (user_type, user.lower())
+            user_list += " %s" % user
         query = query[:-5]
-        query += "') AND channel IS NOT NULL GROUP BY channel HAVING COUNT(DISTINCT " + user_type + ") = " + str(len(users))  + " ORDER BY channel COLLATE NOCASE;"
+        query += "') AND channel IS NOT NULL GROUP BY channel HAVING COUNT(DISTINCT %s) = %s ORDER BY channel COLLATE NOCASE;" % (user_type, len(users))
 
         self.c.execute(query)
         data = self.c.fetchall()
         if len(data) > 0:
             count = 0
-            out = "Common channels between" + user_list + ": "
+            out = "Common channels between%s: " % user_list
             for chan in data:
-                out += chan[0] + " "
+                out += "%s " % chan[0]
                 count += 1
-            self.PutModule(out + "(" + str(count) + " channels)")
+            self.PutModule("%s(%s channels)" % (out, count))
         else:
-            self.PutModule("No shared channels found for " + str(user_type) + "s:" + str(user_list))
+            self.PutModule("No shared channels found for %ss:%s" % (user_type, user_list))
 
     ''' OK '''
     def cmd_trace_intersect(self, user_type, chans):
         chan_list = ''
-        query = "SELECT DISTINCT " + user_type + " FROM users WHERE "
+        query = "SELECT DISTINCT %s FROM users WHERE " % user_type
         for chan in chans:
-            query += "LOWER(channel) = '" + str(chan).lower() + "' OR "
-            chan_list += " " + chan
+            query += "LOWER(channel) = '%s' OR " % chan.lower()
+            chan_list += " %s" % chan
         query = query[:-5]
-        query += "' GROUP BY nick HAVING COUNT(DISTINCT channel) = " + str(len(chans))  + " ORDER BY nick COLLATE NOCASE;"
+        query += "' GROUP BY nick HAVING COUNT(DISTINCT channel) = %s ORDER BY nick COLLATE NOCASE;" % len(chans)
 
         self.c.execute(query)
         data = self.c.fetchall()
         if len(data) > 0:
             count = 0
-            out = "Shared users between" + chan_list + ": "
+            out = "Shared users between%s: " % chan_list
             for nick in data:
-                out += nick[0] + " "
+                out += "%s " % nick[0]
                 count += 1
-            self.PutModule(out + "(" + str(count) + " " + user_type + "s)")
+            self.PutModule("%s(%s %ss)" % (out, count, user_type))
         else:
-            self.PutModule("No common " + str(user_type) + "s found in channels:" + str(chan_list))
+            self.PutModule("No common %ss found in channels:%s" % (user_type, chan_list))
 
     ''' OK '''
     def cmd_seen(self, method, user_type, channel, user):
@@ -348,17 +339,17 @@ class aka(znc.Module):
                 chan = 'Private Message'
             else:
                 chan = channel
-            query = "SELECT seen, message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(nick) = '" + str(user).lower() + "' AND LOWER(channel) = '" + str(channel).lower() + "') AND LOWER(nick) = '" + str(user).lower() + "' AND LOWER(channel) = '" + str(channel).lower() + "';"
+            query = "SELECT seen, message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(%s) = '%s' AND LOWER(channel) = '%s') AND LOWER(%s) = '%s' AND LOWER(channel) = '%s';" % (user_type, user.lower(), channel.lower(), user_type, user.lower(), channel.lower())
             self.c.execute(query)
             data = self.c.fetchall()
             if len(data) > 0:
                 for row in data:
                     days, hours, minutes = self.dt_diff(row[0])
-                    self.PutModule(str(user) + " was last seen in " + str(chan) + " " + str(days) + " days, " + str(hours) + " hours, " + str(minutes) + " minutes ago" + " saying \"" + str(row[1]) + "\" (" + str(row[0]) + ")")
+                    self.PutModule("%s %s was last seen in %s %s days, %s hours, %s minutes ago saying \"%s\" (%s)" % (user_type.title(), user, chan, days, hours, minutes, row[1], row[0]))
             else:
-                self.PutModule(str(user_type).title() + " " + str(user) + " has not been seen in " + str(chan))
+                self.PutModule("%s %s has not been seen talking in %s" % (user_type.title(), user, chan))
         elif method == "nick" or method == "host":
-            query = "SELECT channel, MAX(seen), message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(" + str(method) + ") = '" + str(user).lower() + "') AND LOWER(" + str(method) + ") = '" + str(user).lower() + "';"
+            query = "SELECT channel, MAX(seen), message FROM users WHERE seen = (SELECT MAX(seen) FROM users WHERE LOWER(%s) = '%s') AND LOWER(%s) = '%s';" % (method, user.lower(), method, user.lower())
             self.c.execute(query)
             data = self.c.fetchall()
             if data[0][0] != None:
@@ -368,9 +359,9 @@ class aka(znc.Module):
                     else:
                         chan = channel
                     days, hours, minutes = self.dt_diff(row[1])
-                    self.PutModule(str(user) + " was last seen in " + str(row[0]) + " " + str(days) + " days, " + str(hours) + " hours, " + str(minutes) + " minutes ago" + " saying \"" + str(row[2]) + "\" (" + str(row[1]) + ")")
+                    self.PutModule("%s %s was last seen in %s %s days, %s hours, %s minutes ago saying \"%s\" (%s)" % (user_type.title(), user, row[0], days, hours, minutes, row[2], row[1]))
             else:
-                self.PutModule(str(user_type).title() + " " + str(user) + " has not been seen.")
+                self.PutModule("%s %s has not been seen talking." % (user_type.title(), user))
 
     ''' OK '''
     def cmd_offenses(self, method, user_type, user, channel):
@@ -378,25 +369,24 @@ class aka(znc.Module):
         cols = "op_nick, op_host, channel, action, message, offender_nick, offender_host, added, time"
         if method == "user":
             if user_type == "nick":
-                query = "SELECT host, nick FROM users WHERE LOWER(nick) = '" + str(user).lower() + "' GROUP BY host ORDER BY host;"
+                query = "SELECT host, nick FROM users WHERE LOWER(nick) = '%s' GROUP BY host ORDER BY host;" % user.lower()
                 self.c.execute(query)
-                query = "SELECT " + cols + " FROM moderated WHERE LOWER(offender_nick) = '" + str(user).lower() + "' OR LOWER(offender_nick) LIKE '" + str(user).lower() + "!%' OR LOWER(offender_nick) LIKE '" + str(user).lower() + "*%"
+                query = "SELECT %s FROM moderated WHERE LOWER(offender_nick) = '%s' OR LOWER(offender_nick) LIKE '%s!%%' OR LOWER(offender_nick) LIKE '%s*%%'" % (cols, user.lower(), user.lower(), user.lower())
                 for row in self.c:
-                    query +=  "' OR LOWER(offender_host) = '" + str(row[0]).lower()
-                query += "' ORDER BY time;"
+                    query +=  " OR LOWER(offender_host) = '%s'" % row[0].lower()
+                query += " ORDER BY time;"
             elif user_type == "host":
-                query = "SELECT " + cols + " FROM moderated WHERE LOWER(offender_host) = '" + str(user).lower() + "' ORDER BY time;"
+                query = "SELECT %s FROM moderated WHERE LOWER(offender_host) = '%s' ORDER BY time;" % (cols, user.lower())
         elif method == "channel":
             if user_type == "nick":
-                query = "SELECT host, nick FROM users WHERE LOWER(nick) = '" + str(user).lower() + "' GROUP BY host ORDER BY host;"
+                query = "SELECT host, nick FROM users WHERE LOWER(nick) = '%s' GROUP BY host ORDER BY host;" % user.lower()
                 self.c.execute(query)
-                query = "SELECT " + cols + " FROM moderated WHERE channel = '" + str(channel) + "' AND (LOWER(offender_nick) = '" + str(user).lower() + "' OR LOWER(offender_nick) LIKE '" + str(user).lower() + "!%' OR LOWER(offender_nick) LIKE '" + str(user).lower() + "*%"
+                query = "SELECT %s FROM moderated WHERE channel = '%s' AND (LOWER(offender_nick) = '%s' OR LOWER(offender_nick) LIKE '%s!%%' OR LOWER(offender_nick) LIKE '%s*%%'" % (cols, channel, user.lower(), user.lower(), user.lower())
                 for row in self.c:
-                    query +=  "' OR LOWER(offender_host) = '" + str(row[0]).lower()
-                query += "') ORDER BY time;"
+                    query +=  " OR LOWER(offender_host) = '%s'" % row[0].lower()
+                query += ") ORDER BY time;"
             elif user_type == "host":
-                query = "SELECT " + cols + " FROM moderated WHERE channel = '" + str(channel) + "' and LOWER(offender_host) = '" + str(user).lower() + "' ORDER BY time;"
-
+                query = "SELECT %s FROM moderated WHERE channel = '%s' and LOWER(offender_host) = '%s' ORDER BY time;" % (cols, channel, user.lower())
         self.c.execute(query)
         data = self.c.fetchall()
         if len(data) > 0:
@@ -407,20 +397,16 @@ class aka(znc.Module):
                     offender = offender_host
                 elif user_type == "host":
                     offender = offender_nick
-                if action == "b" or action == "q":
-                    if added == '1':
-                        if action == 'b':
-                            action = 'banned'
-                        elif action =='q':
-                            action = 'quieted'
-                    else:
-                        if action == 'b':
-                            action = 'unbanned'
-                        elif action =='q':
-                            action = 'unquieted'
-                    self.PutModule(str(user) + " (" + str(offender) + ")" + " was " + action + " from " + str(channel) + " by " + str(op_nick) + " on " + str(time) + ".")
+                if action == 'b' or action == 'q':
+                    if action == 'b':
+                        action = 'banned'
+                    elif action =='q':
+                        action = 'quieted'
+                    if added == '0':
+                        action = "un%s" % action
+                    self.PutModule("%s (%s) was %s from %s by %s on %s." % (user, offender, action, channel, op_nick, time))
                 elif action == "k":
-                    self.PutModule(str(user) + " (" + str(offender) + ")" + " was kicked from " + str(channel) + " by " + str(op_nick) + " on " + str(time) + ". Reason: " + str(message))
+                    self.PutModule("%s (%s) was kicked from %s by %s on %s. Reason: %s" % (user, offender, channel, op_nick, time, message))
                 elif action == "gl" or action == "kl" or action == "zl" or action == "ql" or action == "kd":
                     if action == "gl":
                         action = "G-Lined"
@@ -433,17 +419,17 @@ class aka(znc.Module):
                     elif action == "kd":
                         action = "Killed"
 
-                    self.PutModule(str(user) + " (" + str(offender_host) + ")" + " was " + action + " on " + str(time) + ".")
+                    self.PutModule("%s %s (%s) was %s on %s." % (user_type.title(), user, offender_host, action, time))
 
             if method == "user":
-                self.PutModule(str(user) + ": " + str(count) + " total offenses")
+                self.PutModule("%s %s: %s total offenses." % (user_type.title(), user, count))
             elif method == "channel":
-                self.PutModule(str(user) + ": " + str(count) + " total offenses in " + str(channel))
+                self.PutModule("%s %s: %s total offenses in %s." % (user_type.title(), user, count, channel))
         else:
             if method == "channel":
-                self.PutModule("No offenses found for " + str(user_type) + ": " + str(user) + " in " + str(channel))
+                self.PutModule("No offenses found for %s: %s in %s" % (user_type, user, channel))
             else:
-                self.PutModule("No offenses found for " + str(user_type) + ": " + str(user))
+                self.PutModule("No offenses found for %s: %s" % (user_type, user))
 
     ''' OK '''
     def cmd_geoip(self, method, user):
@@ -451,7 +437,7 @@ class aka(znc.Module):
             self.geoip_process(user, user, "host")
         elif method == "nick":
             self.get_raw_geoip_host = True
-            query = "SELECT host, MAX(seen) FROM users WHERE nick = '" + user + "'"
+            query = "SELECT host, MAX(seen) FROM users WHERE nick = '%s'" % user
             self.c.execute(query)
             for row in self.c:
                 self.geoip_process(row[0], user, "nick")
@@ -462,7 +448,9 @@ class aka(znc.Module):
         ipv6 = '^((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4}))*::((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4}))*|((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4})){7}$'
         rdns = '^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$'
 
-        if (re.search(ipv6, str(host)) or re.search(ipv4, str(host)) or re.search(rdns, str(host))) and host != "of":
+        if host == None:
+            self.PutModule("%s %s not found." % (method.title(), nick))
+        elif (re.search(ipv6, str(host)) or re.search(ipv4, str(host)) or (re.search(rdns, str(host)) and '.' in str(host))):
             if re.search(ipv4, str(host)):
                 ip = re.sub('[^\w.]',".",((re.search(ipv4, str(host))).group(0)))
             elif re.search(ipv6, str(host)) or re.search(rdns, str(host)):
@@ -471,13 +459,11 @@ class aka(znc.Module):
             loc = requests.get(url)
             loc_json = loc.json()
             if loc_json["status"] != "fail":
-                self.PutModule(nick + " is located in " + loc_json["city"] + ", " + loc_json["regionName"] + ", " + loc_json["country"] + " (" + str(loc_json["lat"]) + ", " + str(loc_json["lon"]) + ") / Timezone: " + loc_json["timezone"] + " / Proxy: " + str(loc_json["proxy"]) + " / Mobile: " + str(loc_json["mobile"]) + " / IP: " + loc_json["query"] + " " + loc_json["reverse"])
+                self.PutModule("%s %s is located in %s, %s, %s (%s, %s) / Timezone: %s / Proxy: %s / Mobile: %s / IP: %s %s" % (method.title(), nick, loc_json["city"], loc_json["regionName"], loc_json["country"], loc_json["lat"], loc_json["lon"], loc_json["timezone"], loc_json["proxy"], loc_json["mobile"], loc_json["query"], loc_json["reverse"]))
             else:
-                self.PutModule("Unable to geolocate " + str(method) + " " + str(nick) + ". (Reason: " + loc_json["message"] + ")")
-        elif host == "of":
-            self.PutModule(str(method).title() + " " + str(name) + " is not currently online.")
+                self.PutModule("Unable to geolocate %s %s. (Reason: %s)" % (method, nick, loc_json["message"]))
         else:
-            self.PutModule("Invalid host for geolocation (" + host + ")")
+            self.PutModule("Invalid host for geolocation (%s)" % host)
 
     ''' OK '''
     def cmd_config(self, var_name, value):
@@ -485,7 +471,7 @@ class aka(znc.Module):
 
     ''' OK'''
     def cmd_getconfig(self):
-        self.PutModule(str(self.CONFIG))
+        self.PutModule("%s" % self.CONFIG)
 
     ''' OK '''
     def cmd_add(self, nick, host, ident, channel):
@@ -498,17 +484,14 @@ class aka(znc.Module):
 
     ''' OK '''
     def cmd_version(self):
-        """
-        Pull the version number from line 4 of this script
-        """
-        self.PutModule(open(__file__, 'r').readlines()[3].replace("#", "").strip() + " (" + open(__file__, 'r').readlines()[2].replace("#", "").strip() +")")
+        self.PutModule("Version: %s (%s)" % (version, updated))
 
     ''' OK '''
     def cmd_stats(self):
         self.c.execute('SELECT COUNT(DISTINCT host), COUNT(DISTINCT nick) FROM users;')
         for row in self.c:
-            self.PutModule("Nicks: " + str(row[1]))
-            self.PutModule("Hosts: " + str(row[0]))
+            self.PutModule("Nicks: %s" % row[1])
+            self.PutModule("Hosts: %s" % row[0])
 
     ''' OK '''
     def OnModCommand(self, command):
@@ -520,7 +503,7 @@ class aka(znc.Module):
                 if command.split()[1] in cmds:
                     self.cmd_all(command.split()[2], command.split()[1])
             if command.split()[0] == "trace":
-                cmds = ["sharedchans", "intersect", "hostchans", "nickchans", "nick", "host", "geoip"]
+                cmds = ["sharedchans", "intersect", "channels", "nick", "host", "geoip"]
                 if command.split()[1] in cmds:
                     if command.split()[1] == "sharedchans":
                         cmds = ["hosts", "nicks"]
@@ -542,10 +525,12 @@ class aka(znc.Module):
                             self.cmd_trace_intersect(type, command.split()[3:])
                         else:
                             self.PutModule(command.split()[0] + " " + command.split()[1] + " is not a valid command.")
-                    elif command.split()[1] == "hostchans":
-                        self.cmd_trace_hostchans(command.split()[2])
-                    elif command.split()[1] == "nickchans":
-                        self.cmd_trace_nickchans(command.split()[2])
+                    elif command.split()[1] == "channels":
+                        cmds = ["host", "nick"]
+                        if command.split()[2] in cmds:
+                            self.cmd_trace_channels(command.split()[2], command.split()[3])
+                        else:
+                            self.PutModule(command.split()[0] + " " + command.split()[1] + " " + command.split()[2] + " is not a valid command.")
                     elif command.split()[1] == "nick": # trace nick $nick
                         self.cmd_trace_nick(command.split()[2])
                     elif command.split()[1] == "host": # trace host $host
@@ -655,7 +640,7 @@ class aka(znc.Module):
                     self.CONFIG["NOTIFY_ON_JOIN_TIMEOUT"] = int(value)
                     self.timer.Stop()
                     self.timer.Start(self.CONFIG["NOTIFY_ON_JOIN_TIMEOUT"])
-                    self.PutModule("%s => %s" % (var_name, str(value)))
+                    self.PutModule("%s => %s" % (var_name, value))
                 else:
                     self.PutModule("Please use an int value larger than 0")
             elif var_name == "NOTIFY_DEFAULT_MODE":
@@ -802,7 +787,7 @@ class aka(znc.Module):
 
             for chan in chans:
                 for user in chans[chan]:
-                    query = "INSERT OR IGNORE INTO users (host, nick, channel) VALUES ('" + str(user[1]) + "','" + str(user[0]) + "','" + str(chan) + "');"
+                    query = "INSERT OR IGNORE INTO users (host, nick, channel) VALUES ('%s','%s','%s');" % (user[1], user[0], chan)
                     self.c.execute(query)
                 del user
             del chans[chan]
@@ -812,7 +797,7 @@ class aka(znc.Module):
             hosts = json.loads(open(self.GetSavePath() + "/hosts.json", 'r').read())
             for host in hosts:
                 for nick in hosts[host]:
-                        query = "INSERT OR IGNORE INTO users (host, nick) VALUES ('" + str(host) + "','" + str(nick) + "');"
+                        query = "INSERT OR IGNORE INTO users (host, nick) VALUES ('%s','%s');" % (host, nick)
                         self.c.execute(query)
                 del nick
             del hosts[host]
@@ -830,10 +815,11 @@ class aka(znc.Module):
         count = 0
         json_object = json.loads(requests.get(url).text)
         for user in json_object:
-            self.c.execute("INSERT OR IGNORE INTO users (host, nick) VALUES ('" + str(user["host"]) + "','" + str(user["nick"]) + "');")
+            query = "INSERT OR IGNORE INTO users (host, nick) VALUES ('%s','%s');" % (user["host"], user["nick"])
+            self.c.execute(query)
             count += 1
         self.conn.commit()
-        self.PutModule(str(count) + " users imported successfully.")
+        self.PutModule("%s users imported successfully." % count)
 
     ''' OK '''
     def cmd_export_json(self, user, type):
@@ -842,12 +828,13 @@ class aka(znc.Module):
         elif type == "nick":
             subtype = "host"
         result_array = []
-        query = "SELECT nick, host FROM users WHERE LOWER(" + type + ") = '" + str(user).lower() + "' GROUP BY " + subtype
+        query = "SELECT nick, host FROM users WHERE LOWER(%s) = '%s' GROUP BY %s" % (type, user.lower(), subtype)
         self.c.execute(query)
         if type == "nick":
             for row in self.c:
                 c2 = self.conn.cursor()
-                c2.execute("SELECT nick, host FROM users WHERE LOWER(" + subtype + ") = '" + str(row[1]).lower() + "' GROUP BY " + type)
+                query2 = "SELECT nick, host FROM users WHERE LOWER(%s) = '%s' GROUP BY %s" % (subtype, row[1].lower(), type)
+                c2.execute(query2)
                 for row2 in c2:
                     d = collections.OrderedDict()
                     d["nick"] = row2[0]
@@ -888,7 +875,9 @@ class aka(znc.Module):
         self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| trace intersect hosts    | <#channel1> <#channel2> ... <#channel#>   | Display hosts common to a list of channels           |")
         self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
-        self.PutModule("| trace nickchans          | <nick>                                    | Get all channels a nick has been seen in             |")
+        self.PutModule("| trace channels nick      | <nick>                                    | Get all channels a nick has been seen in             |")
+        self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
+        self.PutModule("| trace channels host      | <host>                                    | Get all channels a host has been seen in             |")
         self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
         self.PutModule("| offenses nick            | <nick>                                    | Display kick/ban/quiet history for nick              |")
         self.PutModule("+--------------------------+-------------------------------------------+------------------------------------------------------+")
