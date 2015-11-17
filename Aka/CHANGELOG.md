@@ -14,6 +14,7 @@
   * Clarified output
   * Improved `geoip`
   * `trace nickchans` and `trace hostchans` merged into `trace channels`
+  * Use native ZNC python settings `module.nv`
 
 ### Version 1.0.8
   * `all` command to run complete trace on nick or host

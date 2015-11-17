@@ -27,8 +27,8 @@ DEFAULT_CONFIG = {
     "NOTIFY_ON_JOIN": False, # 0/1
     "NOTIFY_ON_JOIN_TIMEOUT": 300, # Seconds
     "NOTIFY_DEFAULT_MODE": "host", # host/nick
-    "NOTIFY_ON_MODE": 0, # 0/1
-    "NOTIFY_ON_MODERATED": 0 # 0/1
+    "NOTIFY_ON_MODE": False, # 0/1
+    "NOTIFY_ON_MODERATED": False # 0/1
 }
 
 class aka(znc.Module):
@@ -43,20 +43,19 @@ class aka(znc.Module):
         self.get_raw_geoip_host = False
         self.raw_hold = {}
         self.TIMEOUTS = {}
-        self.CONFIG = {}
 
         self.USER = self.GetUser().GetUserName()
         self.NETWORK = self.GetNetwork().GetName()
 
-        self.transfer_data()
+        self.configure()
 
-        # self.process_channels()
+        self.process_channels()
 
         return True
 
     ''' OK '''
     def process_user(self, host, nick, identity, channel, message, addedWithoutMsg):
-        if self.CONFIG.get("DEBUG_MODE", False):
+        if self.nv['DEBUG_MODE'] == "True":
             self.PutModule("DEBUG: Adding %s => %s" % (nick, host))
 
         message = str(message).replace("'","''")
@@ -79,7 +78,7 @@ class aka(znc.Module):
 
     ''' OK '''
     def process_moderated(self, op_nick, op_host, op_ident, channel, action, message, offender_nick, offender_host, offender_ident, added):
-        if self.CONFIG.get("DEBUG_MODE", False):
+        if self.nv['DEBUG_MODE'] == True:
             self.PutModule("DEBUG: Adding %s => %s" % (nick, host))
 
         message = str(message).replace("'","''")
@@ -124,21 +123,21 @@ class aka(znc.Module):
     def OnJoin(self, user, channel):
         self.process_user(user.GetHost(), user.GetNick(), user.GetIdent(), channel.GetName(), None, True)
 
-        if self.CONFIG.get("NOTIFY_ON_JOIN", True) and user.GetNick() != self.GetUser().GetNick():
+        if self.nv['NOTIFY_ON_JOIN'] == "True" and user.GetNick() != self.GetUser().GetNick():
             if user.GetNick() in self.TIMEOUTS:
                 diff = datetime.datetime.now() - self.TIMEOUTS[user.GetNick()]
-                if diff.total_seconds() > self.CONFIG["NOTIFY_ON_JOIN_TIMEOUT"]:
+                if diff.total_seconds() > self.nv['NOTIFY_ON_JOIN_TIMEOUT']:
                     self.PutModule("%s (%s) has joined %s" % (user.GetNick(), user.GetHost(), channel.GetName()))
-                    if self.CONFIG["NOTIFY_DEFAULT_MODE"] == "nick":
+                    if self.nv['NOTIFY_DEFAULT_MODE'] == "nick":
                         self.cmd_trace_nick(user.GetNick())
-                    elif self.CONFIG["NOTIFY_DEFAULT_MODE"] == "host":
+                    elif self.nv['NOTIFY_DEFAULT_MODE'] == "host":
                         self.cmd_trace_host(user.GetHost())
                     self.TIMEOUTS[user.GetNick()] = datetime.datetime.now()
             else:
                 self.PutModule("%s (%s) has joined %s" % (user.GetNick(), user.GetHost(), channel.GetName()))
-                if self.CONFIG["NOTIFY_DEFAULT_MODE"] == "nick":
+                if self.nv['NOTIFY_DEFAULT_MODE'] == "nick":
                     self.cmd_trace_nick(user.GetNick())
-                elif self.CONFIG["NOTIFY_DEFAULT_MODE"] == "host":
+                elif self.nv['NOTIFY_DEFAULT_MODE'] == "host":
                     self.cmd_trace_host(user.GetHost())
                 self.TIMEOUTS[user.GetNick()] = datetime.datetime.now()
 
@@ -190,7 +189,7 @@ class aka(znc.Module):
     ''' OK '''
     def on_kick_process(self, op_nick, op_host, op_ident, channel, offender_nick, offender_host, offender_ident, message):
         self.process_moderated(op_nick, op_host, op_ident, channel, 'k', message, offender_nick, offender_host, offender_ident, None)
-        if self.CONFIG.get("NOTIFY_ON_MODERATED", True):
+        if self.nv['NOTIFY_ON_MODERATED'] ==  "True":
             self.PutModule("%s (%s) has been kicked from %s by %s (%s). Reason: %s" % (offender_nick, offender_host, channel, op_nick, op_host, message))
 
     ''' OK '''
@@ -204,9 +203,9 @@ class aka(znc.Module):
         if mode == "b" or mode == "q":
             self.process_moderated(op.GetNick(), op.GetHost(), op.GetIdent(), channel, mode, None, str(arg).split('!')[0], str(arg).split('@')[1], str((arg).split('@')[0]).split('!')[1], added)
 
-        if (self.CONFIG["NOTIFY_ON_MODE"] == True and self.CONFIG["NOTIFY_ON_MODERATED"] == False) or (self.CONFIG["NOTIFY_ON_MODE"] == True and self.CONFIG["NOTIFY_ON_MODERATED"] == True and mode != 'b' and mode != 'q'):
+        if (self.nv['NOTIFY_ON_MODE'] == "True" and self.nv['NOTIFY_ON_MODERATED'] == "False") or (self.nv['NOTIFY_ON_MODE'] == "True" and self.nv['NOTIFY_ON_MODERATED'] == "True" and mode != 'b' and mode != 'q'):
             self.PutModule("%s has set mode %s%s %sin %s" % (op, char, mode, arg, channel))
-        elif self.CONFIG.get("NOTIFY_ON_MODERATED", True) and (mode == 'b' or mode == 'q'):
+        elif self.nv['NOTIFY_ON_MODERATED'] == "True" and (mode == 'b' or mode == 'q'):
             if added:
                 if mode == 'b':
                     mode = 'banned'
@@ -469,14 +468,6 @@ class aka(znc.Module):
             self.PutModule("Invalid host for geolocation (%s)" % host)
 
     ''' OK '''
-    def cmd_config(self, var_name, value):
-        self.change_config(var_name, value)
-
-    ''' OK'''
-    def cmd_getconfig(self):
-        self.PutModule("%s" % self.CONFIG)
-
-    ''' OK '''
     def cmd_add(self, nick, host, ident, channel):
         self.process_user(host, nick, ident, channel, False)
         self.PutModule("%s => %s" % (nick, host, channel))
@@ -615,71 +606,40 @@ class aka(znc.Module):
         minutes = (diff.seconds//60)%60
         return days, hours, minutes
 
+    ''' OK'''
+    def cmd_getconfig(self):
+        for key, value in self.nv.items():
+            self.PutModule("%s = %s" % (key, value))
+
     ''' OK '''
-    def change_config(self, var_name, value):
-        if var_name in self.CONFIG:
-            if var_name == "DEBUG_MODE":
-                if int(value) in [0, 1]:
-                    if int(value) == 0:
-                        self.CONFIG["DEBUG_MODE"] = False
-                        self.PutModule("Debug mode: OFF")
-                    elif int(value) == 1:
-                        self.CONFIG["DEBUG_MODE"] = True
-                        self.PutModule("Debug mode: ON")
-                else:
-                    self.PutModule("valid values: 0, 1")
-            elif var_name == "NOTIFY_ON_JOIN":
-                if int(value) in [0, 1]:
-                    if int(value) == 0:
-                        self.CONFIG["NOTIFY_ON_JOIN"] = False
-                        self.PutModule("Notify On Join: OFF")
-                    elif int(value) == 1:
-                        self.CONFIG["NOTIFY_ON_JOIN"] = True
-                        self.PutModule("Notify On Join: ON")
-                else:
-                    self.PutModule("Valid values: 0, 1")
-            elif var_name == "NOTIFY_ON_JOIN_TIMEOUT":
-                if int(value) >= 1:
-                    self.CONFIG["NOTIFY_ON_JOIN_TIMEOUT"] = int(value)
-                    self.timer.Stop()
-                    self.timer.Start(self.CONFIG["NOTIFY_ON_JOIN_TIMEOUT"])
-                    self.PutModule("%s => %s" % (var_name, value))
-                else:
-                    self.PutModule("Please use an int value larger than 0")
-            elif var_name == "NOTIFY_DEFAULT_MODE":
-                if str(value) in ["nick", "host"]:
-                    if str(value) == "nick":
-                        self.CONFIG["NOTIFY_DEFAULT_MODE"] = "nick"
-                        self.PutModule("Notify Mode: NICK")
-                    elif str(value) == "host":
-                        self.CONFIG["NOTIFY_DEFAULT_MODE"] = "host"
-                        self.PutModule("Notify Mode: HOST")
-                else:
-                    self.PutModule("Valid values: nick, host")
-            elif var_name == "NOTIFY_ON_MODE":
-                if int(value) in [0, 1]:
-                    if int(value) == 0:
-                        self.CONFIG["NOTIFY_ON_MODE"] = False
-                        self.PutModule("Notify On Mode: OFF")
-                    elif int(value) == 1:
-                        self.CONFIG["NOTIFY_ON_MODE"] = True
-                        self.PutModule("Notify On Mode: ON")
-                else:
-                    self.PutModule("Valid values: 0, 1")
-            elif var_name == "NOTIFY_ON_MODERATED":
-                if int(value) in [0, 1]:
-                    if int(value) == 0:
-                        self.CONFIG["NOTIFY_ON_MODERATED"] = False
-                        self.PutModule("Notify On Moderated: OFF")
-                    elif int(value) == 1:
-                        self.CONFIG["NOTIFY_ON_MODERATED"] = True
-                        self.PutModule("Notify On Moderated: ON")
-                else:
-                    self.PutModule("Valid values: 0, 1")
+    def cmd_config(self, var_name, value):
+        valid = False
+        bad_option = False
+        bools = ["DEBUG_MODE", "NOTIFY_ON_JOIN", "NOTIFY_ON_MODE", "NOTIFY_ON_MODERATED"]
+        if var_name in bools:
+            if value == "True" or value == "False":
+                valid = True
             else:
-                self.PutModule("%s is not a valid var." % var_name)
-        with open(self.GetSavePath() + "/config.json", 'w') as f:
-            f.write(json.dumps(self.CONFIG, sort_keys=True, indent=4))
+                bad_option = True
+                self.PutModule("%s must be either True or False" % var_name)
+        elif var_name == "NOTIFY_ON_JOIN_TIMEOUT":
+            if int(value) >= 1:
+                valid = True
+            else:
+                bad_option = True
+                self.PutModule("You must use an integer value larger than 0")
+        elif var_name == "NOTIFY_DEFAULT_MODE":
+            if str(value) in ["nick", "host"]:
+                valid = True
+            else:
+                bad_option = True
+                self.PutModule("Valid mode options are 'nick' and 'host'")
+
+        if valid and not bad_option:
+            self.SetNV(str(var_name), str(value), True)
+            self.PutModule("%s => %s" % (var_name, value))
+        elif not valid:
+            self.PutModule("%s is not a valid setting." % var_name)
 
     ''' OK '''
     def update(self):
@@ -691,6 +651,81 @@ class aka(znc.Module):
                 znc.CModule().UpdateModule('aka')
         else:
             self.PutModule("You must be an administrator to update this module.")
+
+    ''' OK '''
+    def configure(self):
+
+        if os.path.exists(znc.CUser(self.USER).GetUserPath() + "/networks/" + self.NETWORK + "/moddata/Aka"):
+            os.rename(znc.CUser(self.USER).GetUserPath() + "/networks/" + self.NETWORK + "/moddata/Aka", self.GetSavePath())
+
+        self.db_setup()
+
+        self.old_MODFOLDER = znc.CUser(self.USER).GetUserPath() + "/moddata/Aka/"
+
+        if os.path.exists(self.old_MODFOLDER + "config.json") and not os.path.exists(self.GetSavePath() + "/hosts.json"):
+            shutil.move(self.old_MODFOLDER + "config.json", self.GetSavePath() + "/config.json")
+        if os.path.exists(self.old_MODFOLDER + self.NETWORK + "_hosts.json"):
+            shutil.move(self.old_MODFOLDER + self.NETWORK + "_hosts.json", self.GetSavePath() + "/hosts.json")
+        if os.path.exists(self.old_MODFOLDER + self.NETWORK + "_chans.json"):
+            shutil.move(self.old_MODFOLDER + self.NETWORK + "_chans.json", self.GetSavePath() + "/chans.json")
+        if os.path.exists(self.GetSavePath() + "/config.json"):
+            CONFIG = json.loads(open(self.GetSavePath() + "/config.json").read())
+            for default in DEFAULT_CONFIG:
+                if default not in CONFIG:
+                    CONFIG[default] = DEFAULT_CONFIG[default]
+            new_config = {}
+            for setting in CONFIG:
+                if setting in DEFAULT_CONFIG:
+                    new_config[setting] = CONFIG[setting]
+            CONFIG = new_config
+            with open(self.GetSavePath() + "/config.json", 'w') as f:
+                f.write(json.dumps(new_config, sort_keys=True, indent=4))
+
+            for setting in CONFIG:
+                if CONFIG.get(setting) == 1:
+                    self.SetNV(setting, "True", True)
+                elif CONFIG.get(setting) == 0:
+                    self.SetNV(setting, "False", True)
+                else:
+                    self.SetNV(setting, str(CONFIG[setting]), True)
+
+            os.remove(self.GetSavePath() + "/config.json")
+
+        elif not os.path.exists(self.GetSavePath() + "/.registry"):
+            for setting in DEFAULT_CONFIG:
+                self.SetNV(setting, str(DEFAULT_CONFIG[setting]), True)
+
+        if os.path.exists(self.GetSavePath() + "/hosts.json") and os.path.exists (self.GetSavePath() + "/hosts.json"):
+
+            self.PutModule("aka needs to migrate your data to the new database format. Your data has been backed up. This may take a few minutes and will only happen once.")
+
+            chans = {}
+            chans = json.loads(open(self.GetSavePath() + "/chans.json", 'r').read())
+
+            for chan in chans:
+                for user in chans[chan]:
+                    query = "INSERT OR IGNORE INTO users (host, nick, channel) VALUES ('%s','%s','%s');" % (user[1], user[0], chan)
+                    self.c.execute(query)
+                del user
+            del chans[chan]
+            self.conn.commit()
+
+            hosts = {}
+            hosts = json.loads(open(self.GetSavePath() + "/hosts.json", 'r').read())
+            for host in hosts:
+                for nick in hosts[host]:
+                        query = "INSERT OR IGNORE INTO users (host, nick) VALUES ('%s','%s');" % (host, nick)
+                        self.c.execute(query)
+                del nick
+            del hosts[host]
+            self.conn.commit()
+
+            self.c.execute("VACUUM")
+
+            shutil.move(self.GetSavePath() + "/hosts.json", self.GetSavePath() + "/hosts_processed.json")
+            shutil.move(self.GetSavePath() + "/chans.json", self.GetSavePath() + "/chans_processed.json")
+
+            self.PutModule("Data migration complete.")
 
     ''' OK '''
     def db_setup(self):
@@ -747,71 +782,6 @@ class aka(znc.Module):
             self.c.execute("DROP TABLE mod_backup")
             self.c.execute("COMMIT")
             self.conn.commit()
-
-    ''' OK '''
-    def transfer_data(self):
-
-        if os.path.exists(znc.CUser(self.USER).GetUserPath() + "/networks/" + self.NETWORK + "/moddata/Aka"):
-            os.rename(znc.CUser(self.USER).GetUserPath() + "/networks/" + self.NETWORK + "/moddata/Aka", self.GetSavePath())
-
-        self.db_setup()
-
-        self.old_MODFOLDER = znc.CUser(self.USER).GetUserPath() + "/moddata/Aka/"
-
-        if os.path.exists(self.old_MODFOLDER + "config.json") and not os.path.exists(self.GetSavePath() + "/hosts.json"):
-            shutil.move(self.old_MODFOLDER + "config.json", self.GetSavePath() + "/config.json")
-        if os.path.exists(self.old_MODFOLDER + self.NETWORK + "_hosts.json"):
-            shutil.move(self.old_MODFOLDER + self.NETWORK + "_hosts.json", self.GetSavePath() + "/hosts.json")
-        if os.path.exists(self.old_MODFOLDER + self.NETWORK + "_chans.json"):
-            shutil.move(self.old_MODFOLDER + self.NETWORK + "_chans.json", self.GetSavePath() + "/chans.json")
-        if os.path.exists(self.GetSavePath() + "/config.json"):
-            self.CONFIG = json.loads(open(self.GetSavePath() + "/config.json").read())
-            for default in DEFAULT_CONFIG:
-                if default not in self.CONFIG:
-                    self.CONFIG[default] = DEFAULT_CONFIG[default]
-            new_config = {}
-            for setting in self.CONFIG:
-                if setting in DEFAULT_CONFIG:
-                    new_config[setting] = self.CONFIG[setting]
-            self.CONFIG = new_config
-            with open(self.GetSavePath() + "/config.json", 'w') as f:
-                f.write(json.dumps(new_config, sort_keys=True, indent=4))
-        elif not os.path.exists(self.GetSavePath() + "/config.json"):
-            self.CONFIG = DEFAULT_CONFIG
-            with open(self.GetSavePath() + "/config.json", 'w') as f:
-                f.write(json.dumps(self.CONFIG, sort_keys=True, indent=4))
-
-        if os.path.exists(self.GetSavePath() + "/hosts.json") and os.path.exists (self.GetSavePath() + "/hosts.json"):
-
-            self.PutModule("aka needs to migrate your data to the new database format. Your data has been backed up. This may take a few minutes and will only happen once.")
-
-            chans = {}
-            chans = json.loads(open(self.GetSavePath() + "/chans.json", 'r').read())
-
-            for chan in chans:
-                for user in chans[chan]:
-                    query = "INSERT OR IGNORE INTO users (host, nick, channel) VALUES ('%s','%s','%s');" % (user[1], user[0], chan)
-                    self.c.execute(query)
-                del user
-            del chans[chan]
-            self.conn.commit()
-
-            hosts = {}
-            hosts = json.loads(open(self.GetSavePath() + "/hosts.json", 'r').read())
-            for host in hosts:
-                for nick in hosts[host]:
-                        query = "INSERT OR IGNORE INTO users (host, nick) VALUES ('%s','%s');" % (host, nick)
-                        self.c.execute(query)
-                del nick
-            del hosts[host]
-            self.conn.commit()
-
-            self.c.execute("VACUUM")
-
-            shutil.move(self.GetSavePath() + "/hosts.json", self.GetSavePath() + "/hosts_processed.json")
-            shutil.move(self.GetSavePath() + "/chans.json", self.GetSavePath() + "/chans_processed.json")
-
-            self.PutModule("Data migration complete.")
 
     ''' OK '''
     def cmd_import_json(self, url):
