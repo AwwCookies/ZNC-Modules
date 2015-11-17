@@ -684,7 +684,7 @@ class aka(znc.Module):
             new_version = urllib.request.urlopen("https://raw.githubusercontent.com/AwwCookies/ZNC-Modules/master/Aka/aka.py")
             with open(self.GetModPath(), 'w') as f:
                 f.write(new_version.read().decode('utf-8'))
-                self.PutModule("aka successfully updated.")
+                self.PutModule("aka successfully updated. Please reload aka on all networks.")
                 znc.CModule().UpdateModule('aka')
         else:
             self.PutModule("You must be an administrator to update this module.")
