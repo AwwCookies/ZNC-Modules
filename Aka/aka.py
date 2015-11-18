@@ -1,18 +1,5 @@
 import znc
 import os
-import urllib.request
-
-class aka(znc.Module):
-    module_types = [znc.CModInfo.NetworkModule]
-    description = "Tracks users, aa# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#   Authors: AwwCookies (Aww), MuffinMedic (Evan)                 #
-#   Last Update: Nov 17, 2015                                     #
-#   Version: 1.0.9 (Unmoved)                                      #
-#   Desc: A ZNC Module to track users                             #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-import znc
-import os
 import socket
 import itertools
 import datetime
