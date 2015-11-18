@@ -15,9 +15,4 @@ class aka(znc.Module):
         with open(self.GetModPath(), 'w') as f:
             f.write(new_version.read().decode('utf-8'))
         
-        networks = self.GetUser().GetNetworks()
-        for network in networks:
-            args = ''
-            result = ''
-            modules = network.GetModules()
-            modules.ReloadModule("aka", args, self.GetUser(), network, result)
+        CZNC.UpdateModule("aka")
