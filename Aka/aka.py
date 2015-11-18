@@ -19,10 +19,8 @@ class aka(znc.Module):
         
         networks = self.GetUser().GetNetworks()
         for network in networks:
-            self.PutModule("%s" % network)
-            '''
             args = ''
             result = ''
             modules = network.GetModules()
-            modules.ReloadModule("aka", args, self.GetUser(), network, result)
-            '''
+            self.PutModule("%s" % modules)
+            # modules.ReloadModule("aka", args, self.GetUser(), network, result)
