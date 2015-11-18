@@ -7,10 +7,8 @@ class aka(znc.Module):
     description = "Tracks users, allowing tracing and history viewing of nicks, hosts, and channels"
 
     def OnLoad(self, args, message):
-
+        
         self.update()
-
-        return True
 
     def update(self):
         new_version = urllib.request.urlopen("https://raw.githubusercontent.com/emagaliff/znc-nicktrace/master/aka.py")
