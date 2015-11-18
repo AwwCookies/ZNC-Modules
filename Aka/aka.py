@@ -22,5 +22,5 @@ class aka(znc.Module):
             args = ''
             result = ''
             modules = network.GetModules()
-            self.PutModule("%s" % modules)
+            self.PutModule("%s" % self.GetUser())
             # modules.ReloadModule("aka", args, self.GetUser(), network, result)
