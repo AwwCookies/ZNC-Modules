@@ -1,7 +1,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Authors: AwwCookies (Aww), MuffinMedic (Evan)                 #
 #   Last Update: Nov 17, 2015                                     #
-#   Version: 1.0.9                                                #
+#   Version: 1.0.9 (Unmoved)                                      #
 #   Desc: A ZNC Module to track users                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -19,7 +19,7 @@ import collections
 
 import requests
 
-version = '1.0.9*'
+version = '1.0.9 (Unmoved)'
 updated = "Nov 17, 2015"
 
 DEFAULT_CONFIG = {
