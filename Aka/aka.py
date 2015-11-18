@@ -1,19 +1,6 @@
 import znc
 import os
-import socket
-import itertools
-import datetime
 import urllib.request
-import shutil
-import re
-import sqlite3
-import json
-import collections
-
-import requests
-
-version = '1.0.9 (Unmoved)'
-updated = "Nov 17, 2015"
 
 DEFAULT_CONFIG = {
     "DEBUG_MODE": False, # 0/1
@@ -41,3 +28,10 @@ class aka(znc.Module):
         with open(self.GetModPath(), 'w') as f:
             f.write(new_version.read().decode('utf-8'))
             self.PutModule("aka successfully updated. Please reload aka on all networks.")
+        
+        networks = self.GetUser().GetNetworks()
+        for network in networks:
+            args = ''
+            result = ''
+            modules = network.GetModules()
+            modules.ReloadModule("aka", args, self.GetUser(), network, result)
