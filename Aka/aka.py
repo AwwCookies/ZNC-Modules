@@ -17,7 +17,10 @@ class aka(znc.Module):
         
         networks = self.GetUser().GetNetworks()
         for network in networks:
+            network.PutIRC("PRIVMSG *status reloadmod aka")
+            '''
             args = ''
             result = ''
             modules = network.GetModules()
             modules.ReloadModule("aka", args, self.GetUser(), network, result)
+            '''
