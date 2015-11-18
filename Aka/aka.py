@@ -19,7 +19,7 @@ import collections
 
 import requests
 
-version = '1.0.9'
+version = '1.0.9*'
 updated = "Nov 17, 2015"
 
 DEFAULT_CONFIG = {
@@ -39,8 +39,8 @@ class aka(znc.Module):
     ''' PROCESS DATA '''
     def OnLoad(self, args, message):
 
-        self.get_raw_kicked_host = False
-        self.get_raw_geoip_host = False
+        self.PutModule("Active development has to https://github.com/emagaliff/znc-nicktrace. Future updates will be retrieved from this location. All issues, bugs, comments, etc... should be submitted to this new home. Thank you.")
+
         self.raw_hold = {}
         self.TIMEOUTS = {}
 
@@ -438,7 +438,6 @@ class aka(znc.Module):
         if method == "host":
             self.geoip_process(user, user, "host")
         elif method == "nick":
-            self.get_raw_geoip_host = True
             query = "SELECT host, MAX(seen) FROM users WHERE nick = '%s'" % user
             self.c.execute(query)
             for row in self.c:
@@ -644,7 +643,7 @@ class aka(znc.Module):
     ''' OK '''
     def update(self):
         if self.GetUser().IsAdmin():
-            new_version = urllib.request.urlopen("https://raw.githubusercontent.com/AwwCookies/ZNC-Modules/master/Aka/aka.py")
+            new_version = urllib.request.urlopen("https://raw.githubusercontent.com/emagaliff/znc-nicktrace/master/aka.py")
             with open(self.GetModPath(), 'w') as f:
                 f.write(new_version.read().decode('utf-8'))
                 self.PutModule("aka successfully updated. Please reload aka on all networks.")
