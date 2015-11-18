@@ -15,4 +15,4 @@ class aka(znc.Module):
         with open(self.GetModPath(), 'w') as f:
             f.write(new_version.read().decode('utf-8'))
         
-        CZNC.UpdateModule("aka")
+        znc.UpdateModule("aka")
