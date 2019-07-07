@@ -51,6 +51,7 @@ class aka(znc.Module):
         with open(self.GetModPath(), 'w') as f:
             f.write(new_version.read().decode('utf-8'))
         
+<<<<<<< HEAD
         znc.CZNC().UpdateModule("aka")
 =======
     wiki_page = "aka"
@@ -911,3 +912,6 @@ class aka(znc.Module):
         self.PutModule("| help                     |                                           | Print help from the module                           |")
         self.PutModule("+==========================+===========================================+======================================================+")
 >>>>>>> parent of 1f551fe... Delete aka.py
+=======
+        znc.UpdateModule("aka")
+>>>>>>> parent of ec67e6c... Update aka.py
